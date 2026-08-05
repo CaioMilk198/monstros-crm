@@ -42,3 +42,7 @@ button:disabled{opacity:.55;cursor:not-allowed}
 .divider{border:0;border-top:1px solid var(--line);margin:22px 0}
 @media(max-width:1150px){.dashboard-grid{grid-template-columns:1fr 1fr}.monstrao-card{grid-column:1/-1}.insight-grid{grid-template-columns:1fr}.monstrao-layout{grid-template-columns:1fr}}
 @media(max-width:700px){.dashboard-grid{grid-template-columns:1fr}}
+
+.confirm-box{position:sticky;bottom:12px;z-index:20;margin-top:18px;padding:16px;display:flex;align-items:center;justify-content:space-between;gap:18px;background:linear-gradient(135deg,#173052,#251d45);border:1px solid #3b5f8d;border-radius:13px;box-shadow:0 12px 30px rgba(0,0,0,.35)}
+.confirm-box strong{font-size:16px}.confirm-box p{margin:5px 0 0;color:var(--muted);font-size:13px}.confirm-box button{margin:0;white-space:nowrap}
+@media(max-width:700px){.confirm-box{position:static;display:block}.confirm-box button{width:100%;margin-top:12px}}
