@@ -1,3 +1,5 @@
+console.info('MONSTROS CRM v0.6.2 - app.js atualizado');
+window.MONSTROS_CRM_VERSION='0.6.2';
 let client = null;
 let profile = null;
 let preview = null;
