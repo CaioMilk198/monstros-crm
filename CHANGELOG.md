@@ -1,18 +1,10 @@
 # CHANGELOG
 
-## v0.6.0 — Fluxo completo da importação
+## v0.6.1 — Hotfix RPC e JavaScript
 
 ### Corrigido
-- Prévia não alimentava o banco.
-- Ranking e Monstrão permaneciam vazios.
-- Missão do Dia podia não aparecer.
-- Mesmo arquivo agora repara importações incompletas.
-
-### Adicionado
-- Botão destacado `Confirmar e gerar Dashboard`.
-- Gravação idempotente dos vendedores e indicadores.
-- Score calculado durante a confirmação.
-- Missão do Dia sempre criada.
-- Reconhecimento do maior vendedor.
-- Alertas de cancelamento e baixo faturamento.
-- Retorno com quantidade de vendedores e missões geradas.
+- RPC antiga `confirm_dashboard_import` retornando 404.
+- Compatibilidade com `finalize_import_v3`.
+- Função `formatBRLInput` ausente.
+- Função `parseBRLInput` ausente.
+- Mensagens de erro da confirmação agora mostram detalhes.
