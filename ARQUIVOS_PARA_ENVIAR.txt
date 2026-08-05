@@ -1,0 +1,17 @@
+ENVIE PARA A RAIZ DO REPOSITORIO GITHUB:
+
+index.html
+styles.css
+app.js
+README.md
+CHANGELOG.md
+netlify.toml
+.gitignore
+pasta docs
+
+NAO ENVIE:
+- chaves secretas do Supabase
+- service_role
+- senhas
+- o arquivo ZIP fechado
+- SUPABASE_MIGRATION_V1_1.sql (ele ja foi executado no Supabase)
