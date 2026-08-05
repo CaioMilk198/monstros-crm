@@ -1,23 +1,19 @@
 # CHANGELOG
 
-## v0.3.0 — Sprint 2 MVP
+## v0.4.0 — Importador Inteligente
 
 ### Adicionado
-- Cadastro e login por Supabase Auth.
-- Ativação segura do primeiro administrador.
-- Bucket privado para planilhas.
-- Leitura da planilha no navegador.
-- Hash SHA-256 e bloqueio de duplicidade.
-- Cadastro e conciliação automática de vendedores por nome normalizado.
-- Histórico por protocolo.
-- Persistência de indicadores consolidados.
-- Dashboard.
-- Ranking.
-- Regras iniciais de prioridade.
-- Primeira Missão do Dia.
-- Conclusão de itens da missão.
+- Correção automática do estado “Perfil pendente”.
+- RPC segura `ensure_my_profile`.
+- Verificação de duplicidade antes do upload do arquivo.
+- Histórico das 10 importações mais recentes.
+- Auditoria visual das seis abas esperadas.
+- Alertas para vendedores sem conversão conciliada.
+- Projeção inicial pelo ritmo do mês.
+- Validação da Project URL.
+- Mensagens de sucesso e erro mais claras.
 
-### Limites desta versão
-- A projeção ainda usa o valor importado como base.
-- A conciliação manual de nomes parecidos será adicionada na próxima versão.
-- Monstrão conversacional e relatórios IA entram após a validação do Core.
+### Corrigido
+- Arquivo duplicado não é mais enviado ao Storage antes da checagem.
+- Nomes de arquivos com acentos passam a ser normalizados.
+- Perfil recém-criado é recuperado automaticamente após o login.

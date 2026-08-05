@@ -69,6 +69,11 @@
         <button id="refresh-button" class="secondary">Atualizar</button>
       </header>
 
+      <div id="profile-warning" class="profile-warning hidden">
+        <strong>Seu perfil está sendo preparado.</strong>
+        <span id="profile-warning-text">Aguarde alguns segundos ou abra Configurações.</span>
+      </div>
+
       <section id="view-dashboard" class="view">
         <div id="empty-dashboard" class="panel">
           <h3>Banco pronto. Falta a primeira importação.</h3>
@@ -107,6 +112,7 @@
             <div><label>Data do indicador</label><input id="indicator-date" type="date" /></div>
           </div>
           <button id="analyze-button">Analisar planilha</button>
+          <div id="sheet-audit" class="sheet-audit hidden"></div>
           <div id="import-status" class="message"></div>
         </div>
         <div id="preview-panel" class="panel hidden">
@@ -119,6 +125,10 @@
             </table>
           </div>
           <button id="confirm-button">Confirmar importação</button>
+        </div>
+        <div class="panel">
+          <div class="panel-title-row"><h3>Histórico recente</h3><button id="refresh-history" class="secondary compact-button">Atualizar</button></div>
+          <div id="import-history"><p class="muted">Nenhuma importação registrada.</p></div>
         </div>
       </section>
 
