@@ -14,6 +14,23 @@ const num = (v) => {
   const s=raw.includes(',') ? raw.replace(/\./g,'').replace(',','.') : raw.replace(/[^\d.-]/g,'');
   const n=Number(s.replace(/[^\d.-]/g,'')); return Number.isFinite(n)?n:0;
 };
+const parseBRLInput = (value) => {
+  const raw=String(value??'').trim().replace(/\s/g,'');
+  if(!raw) return 0;
+  const normalized = raw.includes(',')
+    ? raw.replace(/\./g,'').replace(',','.').replace(/[^\d.-]/g,'')
+    : raw.replace(/[^\d.-]/g,'');
+  const parsed=Number(normalized);
+  return Number.isFinite(parsed)?parsed:0;
+};
+const formatBRLInput = (value) => {
+  const parsed = typeof value === 'number' ? value : parseBRLInput(value);
+  if(!Number.isFinite(parsed) || parsed===0) return '';
+  return new Intl.NumberFormat('pt-BR',{
+    minimumFractionDigits:2,
+    maximumFractionDigits:2
+  }).format(parsed);
+};
 const dateBR = (v) => v ? new Date(v).toLocaleString('pt-BR') : '—';
 
 function initClient(){
@@ -243,8 +260,7 @@ $('confirm-button').onclick=async()=>{
   setMessage('import-status','Enviando arquivo e confirmando importação...');
   $('confirm-button').disabled=true;
   try{
-    const duplicateCheck=await client.rpc('check_import_duplicate',{p_sha256:preview.sha256});
-    if(!duplicateCheck.error && duplicateCheck.data?.duplicate) throw new Error(`Importação duplicada. Protocolo já existente: ${duplicateCheck.data.protocol}.`);
+    setMessage('import-status','Confirmando dados no banco e gerando Dashboard, Ranking e Missão do Dia...','success');
     const companyId=profile.company_id;
     const safeName=preview.file.name.normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/[^a-zA-Z0-9._-]/g,'_');
     const path=`${companyId}/${competence}/${Date.now()}-${safeName}`;
@@ -256,18 +272,26 @@ $('confirm-button').onclick=async()=>{
       console.warn('Arquivo original não foi armazenado; a importação continuará.',upError);
       setMessage('import-status','O arquivo original não pôde ser armazenado, mas os dados serão confirmados normalmente...');
     }
-    const {data,error}=await client.rpc('confirm_dashboard_import',{
+    const {data,error}=await client.rpc('finalize_import_v3',{
       p_filename:preview.file.name,p_sha256:preview.sha256,p_file_size:preview.file.size,p_storage_path:storagePath,
       p_competence:`${competence}-01`,p_indicator_date:date,p_team_name:'Equipe Monstros',
       p_summary:preview.summary,p_rows:preview.rows
     });
     if(error) throw error;
-    if(data.duplicate) throw new Error(data.message);
-    await client.rpc('recalculate_scores',{p_indicator_date:date});
-    setMessage('import-status',`Importação confirmada. Protocolo: ${data.protocol}`,'success');
+    const missionResponse=await client.rpc('get_today_mission');
+    if(missionResponse.error) console.warn('Missão não carregada:',missionResponse.error);
+    setMessage(
+      'import-status',
+      `Importação confirmada. ${data.rows_saved||preview.rows.length} vendedores gravados. Protocolo: ${data.protocol}. Missões: ${data.mission_items||0}.`,
+      'success'
+    );
     preview=null; $('preview-panel').classList.add('hidden');
     await Promise.all([loadDashboard(),loadImportHistory()]); openView('dashboard');
-  }catch(e){setMessage('import-status','Erro ao confirmar: '+e.message,'error');}
+  }catch(e){
+    console.error('Falha na confirmação da importação:',e);
+    const details=e?.details||e?.hint||e?.message||String(e);
+    setMessage('import-status','Erro ao confirmar: '+details,'error');
+  }
   finally{$('confirm-button').disabled=false;}
 };
 
