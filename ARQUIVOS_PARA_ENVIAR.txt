@@ -1,17 +1,10 @@
-ENVIE PARA A RAIZ DO REPOSITORIO GITHUB:
+ENVIE AO GITHUB:
+- index.html
+- styles.css
+- app.js
+- CHANGELOG.md
+- SUPABASE_MIGRATION_V1_3.sql
+- GUIA_ATUALIZACAO_V0.5.md
 
-index.html
-styles.css
-app.js
-README.md
-CHANGELOG.md
-netlify.toml
-.gitignore
-pasta docs
-
-NAO ENVIE:
-- chaves secretas do Supabase
-- service_role
-- senhas
-- o arquivo ZIP fechado
-- SUPABASE_MIGRATION_V1_1.sql (ele ja foi executado no Supabase)
+ANTES, EXECUTE NO SUPABASE:
+- SUPABASE_MIGRATION_V1_3.sql

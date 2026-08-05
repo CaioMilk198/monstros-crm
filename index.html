@@ -52,6 +52,7 @@
         <button class="nav active" data-view="dashboard">Centro de Comando</button>
         <button class="nav" data-view="import">Importar planilha</button>
         <button class="nav" data-view="ranking">Ranking</button>
+        <button class="nav" data-view="monstrao">Monstrão</button>
         <button class="nav" data-view="settings">Configurações</button>
       </nav>
       <div class="user-card">
@@ -82,21 +83,27 @@
         </div>
         <div id="dashboard-content" class="hidden">
           <div class="kpis">
-            <div class="panel kpi"><small>Faturamento</small><strong id="kpi-revenue">R$ 0</strong></div>
+            <div class="panel kpi"><small>Faturamento</small><strong id="kpi-revenue">R$ 0</strong><span id="kpi-attainment" class="kpi-note">Meta não definida</span></div>
+            <div class="panel kpi"><small>Meta do mês</small><strong id="kpi-target">R$ 0</strong><span id="kpi-gap" class="kpi-note">Gap: R$ 0</span></div>
+            <div class="panel kpi"><small>Projeção</small><strong id="kpi-projection">R$ 0</strong><span id="kpi-projected-attainment" class="kpi-note">—</span></div>
             <div class="panel kpi"><small>Pedidos</small><strong id="kpi-orders">0</strong></div>
             <div class="panel kpi"><small>Ticket médio</small><strong id="kpi-ticket">R$ 0</strong></div>
-            <div class="panel kpi"><small>Conversão</small><strong id="kpi-conversion">—</strong></div>
             <div class="panel kpi"><small>Cancelamento</small><strong id="kpi-cancellation">—</strong></div>
-            <div class="panel kpi"><small>Projeção</small><strong id="kpi-projection">R$ 0</strong></div>
           </div>
-          <div class="columns">
+          <div class="insight-grid" id="insight-grid"></div>
+          <div class="dashboard-grid">
             <div class="panel">
-              <h3>Missão do Dia</h3>
+              <div class="panel-title-row"><h3>Missão do Dia</h3><span class="live-badge">Prioridades</span></div>
               <div id="mission-list"></div>
             </div>
             <div class="panel">
-              <h3>Top vendedores</h3>
+              <div class="panel-title-row"><h3>Ranking Monstros</h3><button class="secondary compact-button" data-go="ranking">Ver completo</button></div>
               <div id="top-list"></div>
+            </div>
+            <div class="panel monstrao-card">
+              <h3>Monstrão recomenda</h3>
+              <p id="monstrao-summary">Importe os dados para receber um diagnóstico.</p>
+              <button data-go="monstrao">Conversar com o Monstrão</button>
             </div>
           </div>
         </div>
@@ -137,15 +144,52 @@
           <h3>Ranking atual</h3>
           <div class="table-wrap">
             <table>
-              <thead><tr><th>Pos.</th><th>Vendedor</th><th>Faturamento</th><th>Pedidos</th><th>Ticket</th><th>Conversão</th><th>Cancelamento</th></tr></thead>
+              <thead><tr><th>Pos.</th><th>Vendedor</th><th>Score</th><th>Faturamento</th><th>Pedidos</th><th>Ticket</th><th>Ativo</th><th>Cancelamento</th><th>Diagnóstico</th></tr></thead>
               <tbody id="ranking-body"></tbody>
             </table>
           </div>
         </div>
       </section>
 
+
+      <section id="view-monstrao" class="view hidden">
+        <div class="monstrao-layout">
+          <div class="panel">
+            <h3>Monstrão Lite</h3>
+            <p class="muted">Respostas geradas com os dados reais do Dashboard, sem custo de API nesta fase.</p>
+            <div id="chat-box" class="chat-box">
+              <div class="chat-message bot">Olá. Posso explicar a equipe, apontar prioridades, reconhecer destaques e montar uma pauta rápida.</div>
+            </div>
+            <div class="chat-input-row">
+              <input id="chat-input" placeholder="Ex.: Quem devo cobrar hoje?" />
+              <button id="chat-send">Enviar</button>
+            </div>
+          </div>
+          <div class="panel">
+            <h3>Perguntas rápidas</h3>
+            <div class="quick-questions">
+              <button class="secondary quick-question">Como está a equipe?</button>
+              <button class="secondary quick-question">Quem devo cobrar hoje?</button>
+              <button class="secondary quick-question">Quem merece reconhecimento?</button>
+              <button class="secondary quick-question">Qual é o maior risco?</button>
+              <button class="secondary quick-question">Monte a pauta da reunião.</button>
+            </div>
+          </div>
+        </div>
+      </section>
+
       <section id="view-settings" class="view hidden">
         <div class="panel">
+          <h3>Metas e parâmetros</h3>
+          <div class="form-row">
+            <div><label>Competência</label><input id="target-competence" type="month" /></div>
+            <div><label>Meta mensal da equipe</label><input id="target-revenue" type="number" min="0" step="1000" placeholder="850000" /></div>
+            <div><label>Meta de ticket</label><input id="target-ticket" type="number" min="0" step="10" placeholder="1500" /></div>
+            <div><label>Limite de cancelamento (%)</label><input id="target-cancellation" type="number" min="0" step="0.1" value="8" /></div>
+          </div>
+          <button id="save-target-button">Salvar metas</button>
+          <div id="target-message" class="message"></div>
+          <hr class="divider" />
           <h3>Ambiente piloto</h3>
           <button id="claim-admin-button">Ativar este usuário como primeiro administrador</button>
           <p>Use apenas para o primeiro usuário do projeto.</p>

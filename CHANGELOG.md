@@ -1,19 +1,28 @@
 # CHANGELOG
 
-## v0.4.0 — Importador Inteligente
+## v0.5.0 — Centro de Comando Inteligente
 
 ### Adicionado
-- Correção automática do estado “Perfil pendente”.
-- RPC segura `ensure_my_profile`.
-- Verificação de duplicidade antes do upload do arquivo.
-- Histórico das 10 importações mais recentes.
-- Auditoria visual das seis abas esperadas.
-- Alertas para vendedores sem conversão conciliada.
-- Projeção inicial pelo ritmo do mês.
-- Validação da Project URL.
-- Mensagens de sucesso e erro mais claras.
+- Meta mensal configurável.
+- Meta de ticket e limite de cancelamento.
+- Atingimento da meta, gap e projeção.
+- Score Monstros inicial por vendedor.
+- Ranking ordenado por Score.
+- Diagnóstico acionável no ranking.
+- Insights executivos.
+- Missão do Dia com dados confirmados.
+- Monstrão Lite integrado ao Centro de Comando.
+- Perguntas sobre equipe, prioridades, riscos, reconhecimento, feedback e reunião.
+- Funcionamento sem API paga de IA nesta fase.
 
-### Corrigido
-- Arquivo duplicado não é mais enviado ao Storage antes da checagem.
-- Nomes de arquivos com acentos passam a ser normalizados.
-- Perfil recém-criado é recuperado automaticamente após o login.
+### Mantido
+- Importador inteligente.
+- Auditoria de abas.
+- Bloqueio de duplicidade.
+- Histórico por protocolo.
+- Conversão opcional.
+
+### Próxima versão
+- Perfil 360° do vendedor.
+- Agenda e Feedback Inteligente.
+- Comparação temporal entre importações.

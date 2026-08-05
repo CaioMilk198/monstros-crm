@@ -92,7 +92,7 @@ function openView(name){
   document.querySelectorAll('.nav').forEach(x=>x.classList.toggle('active',x.dataset.view===name));
   document.querySelectorAll('.view').forEach(x=>x.classList.add('hidden'));
   $(`view-${name}`).classList.remove('hidden');
-  const titles={dashboard:['Centro de Comando','O que precisa da sua atenção agora.'],import:['Central de Importação','Valide antes de confirmar.'],ranking:['Ranking','Visão atual dos vendedores.'],settings:['Configurações','Ambiente piloto e permissões.']};
+  const titles={dashboard:['Centro de Comando','O que precisa da sua atenção agora.'],import:['Central de Importação','Valide antes de confirmar.'],ranking:['Ranking','Score e diagnóstico dos vendedores.'],monstrao:['Monstrão','Copiloto gerencial baseado nos dados atuais.'],settings:['Configurações','Metas, ambiente piloto e permissões.']};
   $('view-title').textContent=titles[name][0]; $('view-subtitle').textContent=titles[name][1];
   if(name==='import') loadImportHistory();
 }
@@ -108,15 +108,34 @@ async function loadDashboard(){
   $('dashboard-content').classList.toggle('hidden',!has);
   if(!has) return;
   const s=data.summary||{};
-  $('kpi-revenue').textContent=money(s.revenue); $('kpi-orders').textContent=s.orders||0;
-  $('kpi-ticket').textContent=money(s.average_ticket); $('kpi-conversion').textContent=pct(s.conversion_rate);
-  $('kpi-cancellation').textContent=pct(s.cancellation_rate); $('kpi-projection').textContent=money(s.projection);
+  $('kpi-revenue').textContent=money(s.revenue);
+  $('kpi-target').textContent=money(s.target);
+  $('kpi-projection').textContent=money(s.projection);
+  $('kpi-orders').textContent=s.orders||0;
+  $('kpi-ticket').textContent=money(s.average_ticket);
+  $('kpi-cancellation').textContent=pct(s.cancellation_rate);
+  $('kpi-attainment').textContent=s.target>0?`${(Number(s.attainment||0)*100).toFixed(1)}% da meta`:'Meta não definida';
+  $('kpi-gap').textContent=`Gap: ${money(s.gap||0)}`;
+  $('kpi-projected-attainment').textContent=s.target>0?`${(Number(s.projected_attainment||0)*100).toFixed(1)}% projetado`:'Cadastre a meta';
   renderRanking(data.ranking||[]);
-  $('top-list').innerHTML=(data.ranking||[]).slice(0,5).map((r,i)=>`<div class="seller-row"><span>${i+1}. ${r.seller_name}</span><strong>${money(r.revenue)}</strong></div>`).join('');
+  $('top-list').innerHTML=(data.ranking||[]).slice(0,5).map((r,i)=>`<div class="seller-row"><span>${i+1}. ${r.seller_name}<small>Score ${Number(r.score||0).toFixed(0)}</small></span><strong>${money(r.revenue)}</strong></div>`).join('');
   $('mission-list').innerHTML=(data.mission||[]).length?(data.mission||[]).map(m=>`<div class="mission ${m.priority}"><strong>${m.sequence}. ${m.title}</strong><small>${m.reason}</small><div>${m.action_text}</div><button onclick="completeMission('${m.id}')">Concluir</button></div>`).join(''):'<p>Nenhuma prioridade gerada para hoje.</p>';
+  $('insight-grid').innerHTML=(data.insights||[]).map(x=>`<div class="insight-card"><strong>${x.title}</strong><p>${x.text}</p></div>`).join('');
+  $('monstrao-summary').textContent=buildExecutiveSummary(data);
+}
+function sellerDiagnosis(r,team){
+  const avgRevenue=(team||[]).reduce((s,x)=>s+Number(x.revenue||0),0)/Math.max(1,(team||[]).length);
+  if(Number(r.cancellation_rate||0)>0.08) return ['Cancelamento alto','risk'];
+  if(Number(r.revenue||0)<avgRevenue*0.65) return ['Abaixo do ritmo','risk'];
+  if(Number(r.score||0)>=85) return ['Destaque','good'];
+  if(Number(r.average_ticket||0)<((team||[]).reduce((s,x)=>s+Number(x.average_ticket||0),0)/Math.max(1,(team||[]).length))*0.85) return ['Ticket em atenção','warn'];
+  return ['Acompanhar','warn'];
 }
 function renderRanking(rows){
-  $('ranking-body').innerHTML=rows.map((r,i)=>`<tr><td>${i+1}</td><td>${r.seller_name}</td><td>${money(r.revenue)}</td><td>${r.orders||0}</td><td>${money(r.average_ticket)}</td><td>${pct(r.conversion_rate)}</td><td>${pct(r.cancellation_rate)}</td></tr>`).join('');
+  $('ranking-body').innerHTML=rows.map((r,i)=>{
+    const d=sellerDiagnosis(r,rows);
+    return `<tr><td>${i+1}</td><td>${r.seller_name}</td><td><span class="score-badge">${Number(r.score||0).toFixed(0)}</span></td><td>${money(r.revenue)}</td><td>${r.orders||0}</td><td>${money(r.average_ticket)}</td><td>${money(r.active_revenue)}</td><td>${pct(r.cancellation_rate)}</td><td><span class="diagnosis ${d[1]}">${d[0]}</span></td></tr>`;
+  }).join('');
 }
 window.completeMission=async(id)=>{
   const {error}=await client.rpc('complete_mission_item',{p_item_id:id});
@@ -238,6 +257,7 @@ $('confirm-button').onclick=async()=>{
     });
     if(error) throw error;
     if(data.duplicate) throw new Error(data.message);
+    await client.rpc('recalculate_scores',{p_indicator_date:date});
     setMessage('import-status',`Importação confirmada. Protocolo: ${data.protocol}`,'success');
     preview=null; $('preview-panel').classList.add('hidden');
     await Promise.all([loadDashboard(),loadImportHistory()]); openView('dashboard');
@@ -254,5 +274,81 @@ async function loadImportHistory(){
 }
 $('refresh-history').onclick=loadImportHistory;
 
-const today=new Date().toISOString().slice(0,10); $('indicator-date').value=today; $('competence').value=today.slice(0,7);
+
+function buildExecutiveSummary(data){
+  if(!data?.date) return 'Importe os dados para receber um diagnóstico.';
+  const s=data.summary||{}, ranking=data.ranking||[], mission=data.mission||[];
+  const top=ranking[0];
+  const risks=ranking.filter(r=>sellerDiagnosis(r,ranking)[1]==='risk');
+  if(s.target>0){
+    const state=Number(s.projection)>=Number(s.target)?'A projeção cobre a meta':'A projeção ainda está abaixo da meta';
+    return `${state}. ${top?`${top.seller_name} lidera o ranking.`:''} ${risks.length?`${risks.length} vendedor(es) exigem ação prioritária.`:'A equipe não possui riscos críticos pelos critérios atuais.'}`;
+  }
+  return `A equipe faturou ${money(s.revenue)} com ${s.orders||0} pedidos. ${top?`${top.seller_name} lidera o ranking.`:''} Cadastre a meta mensal para ativar o diagnóstico completo.`;
+}
+
+function addChatMessage(text,type){
+  const div=document.createElement('div');
+  div.className=`chat-message ${type}`;
+  div.textContent=text;
+  $('chat-box').appendChild(div);
+  $('chat-box').scrollTop=$('chat-box').scrollHeight;
+}
+function answerMonstrao(question){
+  const data=dashboardPayload;
+  if(!data?.date) return 'Ainda não existem dados confirmados. Faça a primeira importação.';
+  const q=normalize(question), rows=data.ranking||[], s=data.summary||{}, mission=data.mission||[];
+  const top=rows[0], bottom=[...rows].sort((a,b)=>Number(a.revenue||0)-Number(b.revenue||0))[0];
+  const highCancel=[...rows].sort((a,b)=>Number(b.cancellation_rate||0)-Number(a.cancellation_rate||0))[0];
+  const risks=rows.filter(r=>sellerDiagnosis(r,rows)[1]==='risk');
+  if(q.includes('COBRAR')||q.includes('ATENCAO')||q.includes('PRIORIDADE')){
+    if(mission.length) return `Prioridades de hoje:\n${mission.slice(0,5).map(m=>`${m.sequence}. ${m.title}: ${m.action_text}`).join('\n')}`;
+    return risks.length?`Comece por ${risks.slice(0,3).map(r=>r.seller_name).join(', ')}. Eles apresentam maior desvio nos critérios atuais.`:'Não há vendedor em situação crítica pelos critérios atuais.';
+  }
+  if(q.includes('RECONHEC')){
+    return top?`${top.seller_name} merece reconhecimento. Lidera o ranking com ${money(top.revenue)} e Score ${Number(top.score||0).toFixed(0)}.`:'Não encontrei um destaque.';
+  }
+  if(q.includes('RISCO')){
+    const parts=[];
+    if(s.target>0 && Number(s.projection)<Number(s.target)) parts.push(`projeção ${money(s.projection)} abaixo da meta ${money(s.target)}`);
+    if(highCancel && Number(highCancel.cancellation_rate||0)>Number(s.cancellation_limit||0.08)) parts.push(`${highCancel.seller_name} com cancelamento de ${pct(highCancel.cancellation_rate)}`);
+    return parts.length?`Maior risco: ${parts.join('; ')}.`:'Os principais indicadores estão dentro dos limites configurados.';
+  }
+  if(q.includes('REUNIAO')||q.includes('PAUTA')){
+    return `Pauta sugerida:\n1. Resultado: ${money(s.revenue)} e ${s.orders||0} pedidos.\n2. Projeção: ${money(s.projection)}${s.target>0?` para meta de ${money(s.target)}`:''}.\n3. Reconhecimento: ${top?.seller_name||'definir'}.\n4. Atenção: ${risks.slice(0,3).map(r=>r.seller_name).join(', ')||'nenhum caso crítico'}.\n5. Ações: revisar cancelamentos, ticket e prioridades da Missão do Dia.`;
+  }
+  if(q.includes('EQUIPE')||q.includes('COMO ESTA')){
+    return `O que aconteceu: faturamento de ${money(s.revenue)}, ${s.orders||0} pedidos e ticket de ${money(s.average_ticket)}.\nPor que importa: ${s.target>0?`${(Number(s.attainment||0)*100).toFixed(1)}% da meta e projeção de ${(Number(s.projected_attainment||0)*100).toFixed(1)}%.`:'a meta ainda não foi cadastrada.'}\nO que fazer agora: ${mission[0]?.action_text||'acompanhar os vendedores com maior desvio.'}`;
+  }
+  if(q.includes('FEEDBACK')){
+    const target=risks[0]||bottom;
+    return target?`Feedback sugerido para ${target.seller_name}: "Percebi um desvio no seu resultado atual. Vamos revisar os dados, identificar o principal gargalo e combinar uma ação objetiva para as próximas vendas. Acompanharemos o resultado após a aplicação."`:'Não encontrei vendedor para priorizar.';
+  }
+  return buildExecutiveSummary(data)+' Pergunte sobre prioridades, riscos, reconhecimento, feedback ou reunião.';
+}
+function sendChat(){
+  const text=$('chat-input').value.trim();
+  if(!text)return;
+  addChatMessage(text,'user'); $('chat-input').value='';
+  setTimeout(()=>addChatMessage(answerMonstrao(text),'bot'),150);
+}
+$('chat-send').onclick=sendChat;
+$('chat-input').addEventListener('keydown',e=>{if(e.key==='Enter')sendChat();});
+document.querySelectorAll('.quick-question').forEach(b=>b.onclick=()=>{ $('chat-input').value=b.textContent; sendChat(); });
+
+$('save-target-button').onclick=async()=>{
+  const competence=$('target-competence').value;
+  const revenue=Number($('target-revenue').value||0);
+  const ticket=Number($('target-ticket').value||0);
+  const cancel=Number($('target-cancellation').value||8)/100;
+  if(!competence) return setMessage('target-message','Informe a competência.','error');
+  const {error}=await client.rpc('set_team_targets',{
+    p_competence:`${competence}-01`,p_revenue_target:revenue,
+    p_ticket_target:ticket,p_cancellation_limit:cancel
+  });
+  setMessage('target-message',error?error.message:'Metas salvas com sucesso.',error?'error':'success');
+  if(!error) await loadDashboard();
+};
+
+const today=new Date().toISOString().slice(0,10); $('indicator-date').value=today; $('competence').value=today.slice(0,7); $('target-competence').value=today.slice(0,7);
 boot();

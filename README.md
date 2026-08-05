@@ -1,17 +1,18 @@
-# Monstros CRM — Sprint 2 MVP
+# Monstros CRM v0.5
 
-Esta entrega é uma aplicação web estática para validar o primeiro fluxo real:
+Centro de Comando Inteligente para supervisores comerciais.
 
-**Login → Importação → Dashboard → Ranking → Missão do Dia**
+## Funcionalidades atuais
 
-## Arquivos
+- Login e perfis.
+- Importação de Excel.
+- Auditoria das abas.
+- Duplicidade por hash.
+- Histórico por protocolo.
+- Dashboard com dados reais.
+- Meta, atingimento, gap e projeção.
+- Ranking com Score Monstros.
+- Missão do Dia.
+- Monstrão Lite sem API paga.
 
-- `SUPABASE_MIGRATION_V1_1.sql`: migração complementar do banco.
-- `index.html`, `styles.css`, `app.js`: aplicação web.
-- `GUIA_IMPLANTACAO.md`: instruções passo a passo.
-
-## Segurança
-
-- Use apenas a **Project URL** e a **Publishable key** na aplicação.
-- Nunca cole a Secret key ou `service_role` no navegador, GitHub ou arquivos públicos.
-- As operações de gravação são executadas por funções protegidas no banco.
+Consulte `GUIA_ATUALIZACAO_V0.5.md`.

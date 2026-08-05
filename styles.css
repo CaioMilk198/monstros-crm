@@ -25,3 +25,20 @@ main{padding:22px;overflow:auto}header{display:flex;justify-content:space-betwee
 .panel-title-row{display:flex;justify-content:space-between;align-items:center}.compact-button{margin:0;padding:7px 10px}
 .history-item{display:flex;justify-content:space-between;align-items:center;padding:11px 0;border-bottom:1px solid var(--line);gap:12px}.history-item small{display:block;color:var(--muted);margin-top:4px}.history-item>div:last-child{text-align:right}.status{display:inline-block;padding:4px 8px;border-radius:999px;font-size:11px;background:#233650}.status.confirmed{background:#12391f;color:#86efac}.status.reverted{background:#451a1a;color:#fca5a5}.error-text{color:#fca5a5}
 button:disabled{opacity:.55;cursor:not-allowed}
+
+.kpi-note{display:block;color:var(--muted);font-size:11px;margin-top:7px}
+.insight-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-top:14px}
+.insight-card{padding:14px;border-radius:12px;border:1px solid var(--line);background:#0a1728}
+.insight-card strong{display:block;margin-bottom:6px}.insight-card p{color:var(--muted);margin:0;font-size:13px;line-height:1.45}
+.dashboard-grid{display:grid;grid-template-columns:2fr 1.15fr 1fr;gap:14px;margin-top:14px}
+.live-badge{background:#153720;color:#86efac;padding:5px 8px;border-radius:999px;font-size:11px}
+.monstrao-card{background:linear-gradient(155deg,#172844,#291c45)}.monstrao-card p{color:#c6d3e5;line-height:1.55}
+.score-badge{display:inline-flex;min-width:42px;justify-content:center;padding:5px 8px;border-radius:999px;background:#183b62;color:#bfdbfe;font-weight:800}
+.diagnosis{font-size:12px}.diagnosis.good{color:#86efac}.diagnosis.warn{color:#fde68a}.diagnosis.risk{color:#fca5a5}
+.monstrao-layout{display:grid;grid-template-columns:2fr 1fr;gap:14px}.chat-box{height:430px;overflow:auto;padding:12px;background:#081522;border:1px solid var(--line);border-radius:10px;display:flex;flex-direction:column;gap:10px}
+.chat-message{max-width:82%;padding:11px 13px;border-radius:12px;line-height:1.5;white-space:pre-wrap}.chat-message.bot{background:#162b47;align-self:flex-start}.chat-message.user{background:#245b9c;align-self:flex-end}
+.chat-input-row{display:grid;grid-template-columns:1fr auto;gap:8px;margin-top:10px}.chat-input-row button{margin:0}
+.quick-questions{display:flex;flex-direction:column;gap:8px}.quick-question{margin:0;text-align:left}
+.divider{border:0;border-top:1px solid var(--line);margin:22px 0}
+@media(max-width:1150px){.dashboard-grid{grid-template-columns:1fr 1fr}.monstrao-card{grid-column:1/-1}.insight-grid{grid-template-columns:1fr}.monstrao-layout{grid-template-columns:1fr}}
+@media(max-width:700px){.dashboard-grid{grid-template-columns:1fr}}
