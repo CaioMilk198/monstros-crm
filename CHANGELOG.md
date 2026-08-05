@@ -1,28 +1,18 @@
 # CHANGELOG
 
-## v0.5.0 — Centro de Comando Inteligente
+## v0.5.2 — Hotfix de importação e metas
 
-### Adicionado
-- Meta mensal configurável.
-- Meta de ticket e limite de cancelamento.
-- Atingimento da meta, gap e projeção.
-- Score Monstros inicial por vendedor.
-- Ranking ordenado por Score.
-- Diagnóstico acionável no ranking.
-- Insights executivos.
-- Missão do Dia com dados confirmados.
-- Monstrão Lite integrado ao Centro de Comando.
-- Perguntas sobre equipe, prioridades, riscos, reconhecimento, feedback e reunião.
-- Funcionamento sem API paga de IA nesta fase.
+### Corrigido
+- Criação do bucket privado `crm-imports`.
+- Importação não é mais bloqueada se o arquivo original não puder ser armazenado.
+- Campo da meta mensal aceita formato brasileiro.
+- `1.000.000` e `1.000.000,00` passam a ser interpretados como um milhão.
+- Meta e ticket são exibidos formatados após salvar.
 
-### Mantido
-- Importador inteligente.
-- Auditoria de abas.
-- Bloqueio de duplicidade.
-- Histórico por protocolo.
-- Conversão opcional.
-
-### Próxima versão
-- Perfil 360° do vendedor.
-- Agenda e Feedback Inteligente.
-- Comparação temporal entre importações.
+### Resultado esperado
+Após confirmar a planilha, os dados são gravados no banco e alimentam:
+- Centro de Comando;
+- Ranking;
+- Score;
+- Missão do Dia;
+- Monstrão Lite.

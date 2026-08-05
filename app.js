@@ -248,10 +248,16 @@ $('confirm-button').onclick=async()=>{
     const companyId=profile.company_id;
     const safeName=preview.file.name.normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/[^a-zA-Z0-9._-]/g,'_');
     const path=`${companyId}/${competence}/${Date.now()}-${safeName}`;
+    let storagePath=null;
     const {error:upError}=await client.storage.from('crm-imports').upload(path,preview.file,{upsert:false});
-    if(upError) throw upError;
+    if(!upError){
+      storagePath=path;
+    }else{
+      console.warn('Arquivo original não foi armazenado; a importação continuará.',upError);
+      setMessage('import-status','O arquivo original não pôde ser armazenado, mas os dados serão confirmados normalmente...');
+    }
     const {data,error}=await client.rpc('confirm_dashboard_import',{
-      p_filename:preview.file.name,p_sha256:preview.sha256,p_file_size:preview.file.size,p_storage_path:path,
+      p_filename:preview.file.name,p_sha256:preview.sha256,p_file_size:preview.file.size,p_storage_path:storagePath,
       p_competence:`${competence}-01`,p_indicator_date:date,p_team_name:'Equipe Monstros',
       p_summary:preview.summary,p_rows:preview.rows
     });
@@ -336,18 +342,28 @@ $('chat-send').onclick=sendChat;
 $('chat-input').addEventListener('keydown',e=>{if(e.key==='Enter')sendChat();});
 document.querySelectorAll('.quick-question').forEach(b=>b.onclick=()=>{ $('chat-input').value=b.textContent; sendChat(); });
 
+
+['target-revenue','target-ticket'].forEach(id=>{
+  $(id).addEventListener('blur',()=>{$(id).value=formatBRLInput($(id).value);});
+  $(id).addEventListener('focus',()=>{$(id).select();});
+});
+
 $('save-target-button').onclick=async()=>{
   const competence=$('target-competence').value;
-  const revenue=Number($('target-revenue').value||0);
-  const ticket=Number($('target-ticket').value||0);
+  const revenue=parseBRLInput($('target-revenue').value);
+  const ticket=parseBRLInput($('target-ticket').value);
   const cancel=Number($('target-cancellation').value||8)/100;
   if(!competence) return setMessage('target-message','Informe a competência.','error');
   const {error}=await client.rpc('set_team_targets',{
     p_competence:`${competence}-01`,p_revenue_target:revenue,
     p_ticket_target:ticket,p_cancellation_limit:cancel
   });
-  setMessage('target-message',error?error.message:'Metas salvas com sucesso.',error?'error':'success');
-  if(!error) await loadDashboard();
+  setMessage('target-message',error?error.message:`Metas salvas: ${money(revenue)} por mês e ticket de ${money(ticket)}.`,error?'error':'success');
+  if(!error){
+    $('target-revenue').value=formatBRLInput(revenue);
+    $('target-ticket').value=formatBRLInput(ticket);
+    await loadDashboard();
+  }
 };
 
 const today=new Date().toISOString().slice(0,10); $('indicator-date').value=today; $('competence').value=today.slice(0,7); $('target-competence').value=today.slice(0,7);
