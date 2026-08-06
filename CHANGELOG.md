@@ -1,10 +1,6 @@
-# CHANGELOG
+# v0.9.3 — Restauração do calendário
 
-## v0.6.1 — Hotfix RPC e JavaScript
-
-### Corrigido
-- RPC antiga `confirm_dashboard_import` retornando 404.
-- Compatibilidade com `finalize_import_v3`.
-- Função `formatBRLInput` ausente.
-- Função `parseBRLInput` ausente.
-- Mensagens de erro da confirmação agora mostram detalhes.
+- Restaura os campos Dias úteis do mês e Dias úteis já trabalhados.
+- Mantém Director, Analytics, Inteligência e Perfil 360 no menu.
+- Mantém a correção do rankingMode.
+- Atualiza o cache para app.js v0.9.3.

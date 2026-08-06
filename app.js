@@ -1,7 +1,10 @@
+console.info('MONSTEROS v0.9.2 - Ranking State Hotfix');
+window.MONSTROS_CRM_VERSION='0.9.3';
 let client = null;
 let profile = null;
 let preview = null;
 let dashboardPayload = null;
+let rankingMode = localStorage.getItem('monsteros_ranking_mode') || 'commercial';
 
 const $ = (id) => document.getElementById(id);
 const money = (v) => new Intl.NumberFormat('pt-BR',{style:'currency',currency:'BRL'}).format(Number(v||0));
@@ -108,9 +111,12 @@ document.querySelectorAll('[data-go]').forEach(b=>b.onclick=()=>openView(b.datas
 function openView(name){
   document.querySelectorAll('.nav').forEach(x=>x.classList.toggle('active',x.dataset.view===name));
   document.querySelectorAll('.view').forEach(x=>x.classList.add('hidden'));
-  $(`view-${name}`).classList.remove('hidden');
-  const titles={dashboard:['Centro de Comando','O que precisa da sua atenção agora.'],import:['Central de Importação','Valide antes de confirmar.'],ranking:['Ranking','Score e diagnóstico dos vendedores.'],monstrao:['Monstrão','Copiloto gerencial baseado nos dados atuais.'],settings:['Configurações','Metas, ambiente piloto e permissões.']};
-  $('view-title').textContent=titles[name][0]; $('view-subtitle').textContent=titles[name][1];
+  const targetView=$(`view-${name}`);
+  if(!targetView){console.warn('View não encontrada:',name);return;}
+  targetView.classList.remove('hidden');
+  const titles={dashboard:['Centro de Comando','O que precisa da sua atenção agora.'],import:['Central de Importação','Valide antes de confirmar.'],ranking:['Ranking','Índice Monstro e DNA Comercial.'],intelligence:['Inteligência Gerencial','Onde estamos, para onde vamos e onde está o dinheiro.'],profile360:['Perfil 360','Dossiê individual do vendedor.'],director:['Monster Director','Decisões priorizadas pelo impacto financeiro.'],analytics:['Monster Analytics','Histórico e evolução da operação.'],monstrao:['Monstrão','Copiloto gerencial baseado nos dados atuais.'],settings:['Configurações','Metas, dias úteis e permissões.']};
+  const title=titles[name]||[name,''];
+  $('view-title').textContent=title[0]; $('view-subtitle').textContent=title[1];
   if(name==='import') loadImportHistory();
 }
 $('refresh-button').onclick=async()=>{await loadProfile();await loadDashboard();};
@@ -134,11 +140,55 @@ async function loadDashboard(){
   $('kpi-attainment').textContent=s.target>0?`${(Number(s.attainment||0)*100).toFixed(1)}% da meta`:'Meta não definida';
   $('kpi-gap').textContent=`Gap: ${money(s.gap||0)}`;
   $('kpi-projected-attainment').textContent=s.target>0?`${(Number(s.projected_attainment||0)*100).toFixed(1)}% projetado`:'Cadastre a meta';
-  renderRanking(data.ranking||[]);
-  $('top-list').innerHTML=(data.ranking||[]).slice(0,5).map((r,i)=>`<div class="seller-row"><span>${i+1}. ${r.seller_name}<small>Score ${Number(r.score||0).toFixed(0)}</small></span><strong>${money(r.revenue)}</strong></div>`).join('');
+  const revenueRanking=[...(data.ranking||[])].sort((a,b)=>Number(b.revenue||0)-Number(a.revenue||0));
+  renderRanking(revenueRanking);
+  $('top-list').innerHTML=revenueRanking.slice(0,5).map((r,i)=>`<div class="seller-row"><span><b>${i+1}. ${r.seller_name}</b><small>Score ${Number(r.score||0).toFixed(0)}</small></span><strong>${money(r.revenue)}</strong></div>`).join('');
   $('mission-list').innerHTML=(data.mission||[]).length?(data.mission||[]).map(m=>`<div class="mission ${m.priority}"><strong>${m.sequence}. ${m.title}</strong><small>${m.reason}</small><div>${m.action_text}</div><button onclick="completeMission('${m.id}')">Concluir</button></div>`).join(''):'<p>Nenhuma prioridade gerada para hoje.</p>';
   $('insight-grid').innerHTML=(data.insights||[]).map(x=>`<div class="insight-card"><strong>${x.title}</strong><p>${x.text}</p></div>`).join('');
   $('monstrao-summary').textContent=buildExecutiveSummary(data);
+  await loadManualMissions();
+  await loadDirectorPilot();
+  await loadAnalyticsPilot();
+  if(window.MonsterEngine){
+    const engineData=await window.MonsterEngine.load(client);
+    window.MonsterEngine.renderDashboard();
+    window.MonsterEngine.renderIntelligence();
+    if(engineData?.projection){
+      const ep=engineData.projection;
+      $('kpi-projection').textContent=money(ep.projected_revenue);
+      $('kpi-projected-attainment').textContent=`${pct(ep.projected_attainment)} projetado por dias úteis`;
+      const projectionCard=$('kpi-projection')?.closest('.kpi');
+      if(projectionCard) projectionCard.title=
+        `Média diária: ${money(ep.daily_rate)} | Ritmo necessário: ${money(ep.required_daily_rate)}`;
+
+      const projectionAbove=Number(ep.projected_revenue||0)>=Number(ep.target||0);
+      const health=engineData.health||{};
+      const moneyData=engineData.money||{};
+      $('insight-grid').innerHTML=`
+        <div class="insight-card">
+          <strong>${projectionAbove?'Projeção acima da meta':'Projeção abaixo da meta'}</strong>
+          <p>${projectionAbove
+            ? `O ritmo atual projeta ${money(ep.projected_revenue)}, acima da meta.`
+            : `Faltam aproximadamente ${money(Number(ep.target||0)-Number(ep.projected_revenue||0))} na projeção. O ritmo necessário é ${money(ep.required_daily_rate)}/dia.`}</p>
+        </div>
+        <div class="insight-card">
+          <strong>Saúde da operação: ${health.status||'—'}</strong>
+          <p>${health.low_volume_count||0} vendedor(es) com baixo volume e ${health.cancellation_risk_count||0} com risco de cancelamento.</p>
+        </div>
+        <div class="insight-card">
+          <strong>Potencial financeiro</strong>
+          <p>${money(moneyData.total_opportunity)} em cenários de ticket, cancelamento e recuperação de baixo volume.</p>
+        </div>`;
+    }
+    if(engineData?.seller_dna?.length){
+      const rankMap=new Map(engineData.seller_dna.map(s=>[s.seller_id,s]));
+      const updated=(dashboardPayload?.ranking||[]).map(r=>({
+        ...r,
+        score:rankMap.get(r.seller_id)?.score ?? r.score
+      }));
+      renderRanking(updated.sort((a,b)=>Number(b.revenue||0)-Number(a.revenue||0)));
+    }
+  }
 }
 function sellerDiagnosis(r,team){
   const avgRevenue=(team||[]).reduce((s,x)=>s+Number(x.revenue||0),0)/Math.max(1,(team||[]).length);
@@ -149,15 +199,169 @@ function sellerDiagnosis(r,team){
   return ['Acompanhar','warn'];
 }
 function renderRanking(rows){
-  $('ranking-body').innerHTML=rows.map((r,i)=>{
-    const d=sellerDiagnosis(r,rows);
-    return `<tr><td>${i+1}</td><td>${r.seller_name}</td><td><span class="score-badge">${Number(r.score||0).toFixed(0)}</span></td><td>${money(r.revenue)}</td><td>${r.orders||0}</td><td>${money(r.average_ticket)}</td><td>${money(r.active_revenue)}</td><td>${pct(r.cancellation_rate)}</td><td><span class="diagnosis ${d[1]}">${d[0]}</span></td></tr>`;
+  const ordered=[...(rows||[])].sort((a,b)=>rankingMode==='monster'
+?Number(b.score||0)-Number(a.score||0):Number(b.revenue||0)-Number(a.revenue||0));
+  $('ranking-body').innerHTML=ordered.map((r,i)=>{
+    const dna=window.MonsterEngine?.dnaForSeller(r.seller_id);
+    const fallback=sellerDiagnosis(r,ordered);
+    const tags=[
+      ...(dna?.strengths||[]).filter(Boolean).slice(0,2).map(x=>[x,'good']),
+      ...(dna?.attention||[]).filter(Boolean).slice(0,2).map(x=>[x,'risk'])
+    ];
+    if(!tags.length) tags.push(fallback);
+    const medal=i===0?'🥇':i===1?'🥈':i===2?'🥉':`${i+1}`;
+    return `<tr>
+      <td>${medal}</td>
+      <td><button class="seller-link" onclick="openSeller360('${r.seller_id}')">${r.seller_name}</button></td>
+      <td><span class="score-badge">${Number(r.score||0).toFixed(0)}</span></td>
+      <td>${money(r.revenue)}</td>
+      <td>${r.orders||0}</td>
+      <td>${money(r.average_ticket)}</td>
+      <td>${money(r.active_revenue)}</td>
+      <td>${pct(r.cancellation_rate)}</td>
+      <td><div class="diagnosis-tags">${tags.map(t=>`<span class="diagnosis ${t[1]}">${t[0]}</span>`).join('')}</div></td>
+    </tr>`;
   }).join('');
 }
 window.completeMission=async(id)=>{
   const {error}=await client.rpc('complete_mission_item',{p_item_id:id});
   if(error) alert(error.message); else loadDashboard();
 };
+
+
+async function populateMissionSellers(){
+  const select=$('mission-seller');
+  if(!select) return;
+  const rows=[...(dashboardPayload?.ranking||[])].sort((a,b)=>Number(b.revenue||0)-Number(a.revenue||0));
+  select.innerHTML='<option value="">Equipe / sem vendedor</option>'+
+    rows.map(r=>`<option value="${r.seller_id}">${r.seller_name}</option>`).join('');
+}
+
+async function loadManualMissions(){
+  if(!client || !profile || !$('manual-missions-list')) return;
+  const {data,error}=await client.rpc('list_management_missions',{
+    p_status:null,
+    p_limit:10
+  });
+  if(error){
+    console.warn('Missões manuais:',error);
+    $('manual-missions-list').innerHTML='';
+    return;
+  }
+  const active=(data||[]).filter(m=>m.status!=='completed' && m.status!=='cancelled');
+  $('manual-missions-list').innerHTML=active.length
+    ? `<h4>Missões do gestor</h4>${active.map(m=>`
+      <div class="manual-mission ${m.priority}">
+        <div class="manual-mission-main">
+          <strong>${m.title}</strong>
+          <small>${m.seller_name||'Equipe'} • ${m.estimated_minutes} min • impacto ${money(m.estimated_impact)}</small>
+          ${m.reason?`<p>${m.reason}</p>`:''}
+          ${m.action_text?`<p><b>Ação:</b> ${m.action_text}</p>`:''}
+        </div>
+        <div class="mission-status-actions">
+          ${m.status==='pending'
+            ? `<button class="secondary compact-button" onclick="changeManualMissionStatus('${m.id}','in_progress')">Iniciar</button>`
+            : '<span class="status in_progress">Em andamento</span>'}
+          <button class="compact-button" onclick="changeManualMissionStatus('${m.id}','completed')">Concluir</button>
+        </div>
+      </div>`).join('')}`
+    : '';
+}
+
+window.changeManualMissionStatus=async(id,status)=>{
+  const note=status==='completed'
+    ? (prompt('Resultado ou observação da conclusão (opcional):')||null)
+    : null;
+  const {error}=await client.rpc('update_management_mission_status',{
+    p_mission_id:id,
+    p_status:status,
+    p_completion_note:note
+  });
+  if(error) alert(error.message);
+  else {
+    await loadManualMissions();
+  await loadDirectorPilot();
+  await loadAnalyticsPilot();
+    await loadDashboard();
+  }
+};
+
+$('new-mission-button').onclick=async()=>{
+  await populateMissionSellers();
+  $('mission-form').classList.remove('hidden');
+  $('mission-title').focus();
+};
+
+$('cancel-mission-button').onclick=()=>{
+  $('mission-form').classList.add('hidden');
+  setMessage('mission-form-message','');
+};
+
+$('save-mission-button').onclick=async()=>{
+  const title=$('mission-title').value.trim();
+  if(!title) return setMessage('mission-form-message','Informe o título da missão.','error');
+
+  setMessage('mission-form-message','Criando missão...');
+  const {error}=await client.rpc('create_management_mission',{
+    p_title:title,
+    p_seller_id:$('mission-seller').value||null,
+    p_reason:$('mission-reason').value.trim()||null,
+    p_action_text:$('mission-action').value.trim()||null,
+    p_priority:$('mission-priority').value,
+    p_estimated_impact:Number($('mission-impact').value||0),
+    p_estimated_minutes:Number($('mission-minutes').value||20),
+    p_due_date:$('mission-due').value||null
+  });
+
+  if(error) return setMessage('mission-form-message',error.message,'error');
+
+  setMessage('mission-form-message','Missão criada com sucesso.','success');
+  ['mission-title','mission-reason','mission-action','mission-impact','mission-due'].forEach(id=>{
+    if($(id)) $(id).value=id==='mission-impact'?'0':'';
+  });
+  $('mission-minutes').value='20';
+  setTimeout(()=>$('mission-form').classList.add('hidden'),500);
+  await loadManualMissions();
+  await loadDirectorPilot();
+  await loadAnalyticsPilot();
+};
+
+
+async function loadDirectorPilot(){
+  if(!client||!profile)return;
+  const date=dashboardPayload?.date||new Date().toISOString().slice(0,10);
+  await client.rpc('capture_operation_snapshot',{p_date:date});
+  const {data,error}=await client.rpc('get_director_payload',{p_date:date});
+  if(error){console.warn('Director',error);return}
+  directorPayload=data; renderDirectorPilot(data);
+}
+function renderDirectorPilot(d){
+  if(!d?.date)return;
+  const r=d.radar||{};
+  const cards=[['🟢','Oportunidade',money(r.opportunity||0)],['🔴','Risco',r.risk],['🟡','Atenção',r.attention],['🔵','Destaque',r.highlight],['⚡','Missão',r.mission],['📈','Tendência',r.trend],['💰','Ganho rápido',r.quick_win]];
+  if($('director-radar'))$('director-radar').innerHTML=cards.map(c=>`<div class="radar-card"><span>${c[0]}</span><small>${c[1]}</small><strong>${c[2]||'—'}</strong></div>`).join('');
+  const list=a=>`<ul>${(a||[]).map(x=>`<li>${x}</li>`).join('')}</ul>`;
+  if($('director-happened'))$('director-happened').innerHTML=list(d.what_happened);
+  if($('director-why'))$('director-why').innerHTML=list(d.why_it_happened);
+  const c=d.cost||{};
+  if($('director-cost'))$('director-cost').innerHTML=`<div class="cost-total">${money(c.total_opportunity||0)}</div><p>Ticket: ${money(c.ticket_opportunity||0)}<br>Cancelamento: ${money(c.cancellation_loss||0)}<br>Baixo volume: ${money(c.active_opportunity||0)}</p>`;
+  if($('director-priorities'))$('director-priorities').innerHTML=(d.priorities||[]).map(p=>`<div class="director-priority"><div class="priority-number">${p.order}</div><div><h4>${p.title}</h4><p>${p.action}</p><b>Impacto ${money(p.impact||0)} • ${p.minutes} min</b><div><button onclick="this.nextElementSibling.classList.toggle('hidden')">Ver vendedores</button><div class="priority-sellers hidden">${(p.seller_names||[]).map((n,i)=>`<button class="seller-chip" onclick="openSeller360('${p.seller_ids[i]}')">${n}</button>`).join('')}</div></div></div></div>`).join('');
+}
+async function loadAnalyticsPilot(){
+  if(!client||!profile)return;
+  const {data,error}=await client.rpc('get_operation_timeline',{p_limit:30});
+  if(error||!$('analytics-timeline'))return;
+  const rows=data||[];
+  if(!rows.length){$('analytics-timeline').innerHTML='<p>O histórico aparecerá nas próximas importações.</p>';return}
+  const x=rows[0];
+  $('analytics-summary').innerHTML=`<div class="analytics-card"><small>Índice</small><strong>${Number(x.monster_index||0).toFixed(0)}</strong></div><div class="analytics-card"><small>Receita</small><strong>${money(x.revenue)}</strong></div><div class="analytics-card"><small>Projeção</small><strong>${money(x.projection)}</strong></div><div class="analytics-card"><small>Oportunidade</small><strong>${money(x.opportunity_total)}</strong></div>`;
+  $('analytics-timeline').innerHTML=rows.map(r=>`<div class="timeline-item"><b>${new Date(r.indicator_date+'T12:00').toLocaleDateString('pt-BR')}</b><span>Índice ${Number(r.monster_index||0).toFixed(0)}</span><span>${money(r.revenue)}</span><small>${r.revenue_change==null?'Primeiro registro':`Variação ${pct(r.revenue_change)}`}</small></div>`).join('');
+}
+const rankingCommercialTab=$('ranking-commercial-tab');
+const rankingMonsterTab=$('ranking-monster-tab');
+if(rankingCommercialTab) rankingCommercialTab.onclick=()=>{rankingMode='commercial';localStorage.setItem('monsteros_ranking_mode',rankingMode);rankingCommercialTab.classList.add('active');rankingMonsterTab?.classList.remove('active');renderRanking(dashboardPayload?.ranking||[])};
+if(rankingMonsterTab) rankingMonsterTab.onclick=()=>{rankingMode='monster';localStorage.setItem('monsteros_ranking_mode',rankingMode);rankingMonsterTab.classList.add('active');rankingCommercialTab?.classList.remove('active');renderRanking(dashboardPayload?.ranking||[])};
+if(rankingMode==='monster'){ rankingMonsterTab?.classList.add('active'); rankingCommercialTab?.classList.remove('active'); } else { rankingCommercialTab?.classList.add('active'); rankingMonsterTab?.classList.remove('active'); }
 
 $('claim-admin-button').onclick=async()=>{
   setMessage('settings-message','Ativando...');
@@ -307,14 +511,32 @@ $('refresh-history').onclick=loadImportHistory;
 
 function buildExecutiveSummary(data){
   if(!data?.date) return 'Importe os dados para receber um diagnóstico.';
-  const s=data.summary||{}, ranking=data.ranking||[], mission=data.mission||[];
+  const engine=window.MonsterEngine?.payload;
+  const s=data.summary||{};
+  const ranking=[...(data.ranking||[])].sort((a,b)=>Number(b.revenue||0)-Number(a.revenue||0));
   const top=ranking[0];
-  const risks=ranking.filter(r=>sellerDiagnosis(r,ranking)[1]==='risk');
-  if(s.target>0){
-    const state=Number(s.projection)>=Number(s.target)?'A projeção cobre a meta':'A projeção ainda está abaixo da meta';
-    return `${state}. ${top?`${top.seller_name} lidera o ranking.`:''} ${risks.length?`${risks.length} vendedor(es) exigem ação prioritária.`:'A equipe não possui riscos críticos pelos critérios atuais.'}`;
+
+  if(engine?.projection){
+    const p=engine.projection;
+    const h=engine.health||{};
+    const m=engine.money||{};
+    const above=Number(p.projected_revenue||0)>=Number(p.target||0);
+    const state=above
+      ? `A projeção está acima da meta em ${money(Number(p.projected_revenue||0)-Number(p.target||0))}.`
+      : `A projeção está abaixo da meta em ${money(Number(p.target||0)-Number(p.projected_revenue||0))}.`;
+    return `${state} Índice Monstro ${Number(h.monster_index||0).toFixed(0)} (${h.status||'—'}). ${
+      top?`${top.seller_name} lidera o faturamento.`:''
+    } O potencial financeiro estimado é ${money(m.total_opportunity||0)}.`;
   }
-  return `A equipe faturou ${money(s.revenue)} com ${s.orders||0} pedidos. ${top?`${top.seller_name} lidera o ranking.`:''} Cadastre a meta mensal para ativar o diagnóstico completo.`;
+
+  if(s.target>0){
+    const state=Number(s.projection)>=Number(s.target)
+      ? 'A projeção cobre a meta'
+      : 'A projeção ainda está abaixo da meta';
+    return `${state}. ${top?`${top.seller_name} lidera o faturamento.`:''}`;
+  }
+
+  return `A equipe faturou ${money(s.revenue)} com ${s.orders||0} pedidos.`;
 }
 
 function addChatMessage(text,type){
@@ -388,6 +610,52 @@ $('save-target-button').onclick=async()=>{
     $('target-ticket').value=formatBRLInput(ticket);
     await loadDashboard();
   }
+};
+
+
+$('save-calendar-button').onclick=async()=>{
+  const competence=$('target-competence').value;
+  const total=Number($('business-total').value||0);
+  const elapsed=Number($('business-elapsed').value||0);
+  if(!competence) return setMessage('target-message','Informe a competência.','error');
+  const {data,error}=await client.rpc('set_business_calendar',{
+    p_competence:`${competence}-01`,
+    p_total_business_days:total,
+    p_elapsed_business_days:elapsed
+  });
+  setMessage('target-message',error?error.message:`Dias úteis salvos: ${elapsed} trabalhados de ${total}.`,error?'error':'success');
+  if(!error) await loadDashboard();
+};
+
+window.openSeller360=async(id)=>{
+  openView('profile360');
+  const dna=window.MonsterEngine?.dnaForSeller(id);
+  const {data,error}=await client.rpc('get_seller_360',{p_seller_id:id});
+  if(error){console.error(error);return;}
+  const latest=data?.latest||{};
+  $('profile360-name').textContent=data?.seller?.name||'Vendedor';
+  $('profile360-score').textContent=Number(latest.score||0).toFixed(0);
+  $('profile360-dna').innerHTML=[
+    ...(dna?.strengths||[]).filter(Boolean).slice(0,4).map(x=>`<span class="dna-strength">${x}</span>`),
+    ...(dna?.attention||[]).filter(Boolean).slice(0,2).map(x=>`<span class="dna-attention">${x}</span>`)
+  ].join('');
+  $('profile360-kpis').innerHTML=`
+    <div><small>Faturamento</small><strong>${money(latest.revenue)}</strong></div>
+    <div><small>Pedidos</small><strong>${latest.orders||0}</strong></div>
+    <div><small>Ticket</small><strong>${money(latest.ticket)}</strong></div>
+    <div><small>Ativo</small><strong>${money(latest.active)}</strong></div>
+    <div><small>Cancelamento</small><strong>${pct(latest.cancellation)}</strong></div>
+    <div><small>Participação</small><strong>${pct(dna?.participation)}</strong></div>`;
+  const mission = Number(latest.cancellation||0)>0.15
+    ? 'Auditar três vendas e aplicar feedback de confirmação.'
+    : Number(latest.revenue||0)<((dashboardPayload?.summary?.revenue||0)/(dashboardPayload?.summary?.seller_count||1))*0.65
+      ? 'Revisar carteira e acompanhar o próximo bloco de vendas.'
+      : 'Reconhecer o desempenho e registrar a melhor prática.';
+  $('profile360-mission').innerHTML=`<strong>${mission}</strong><p>O Monstrão usa os dados atuais para orientar a próxima ação.</p>`;
+  const history=data?.history||[];
+  $('profile360-history').innerHTML=history.length
+    ? `<table><thead><tr><th>Data</th><th>Faturamento</th><th>Ticket</th><th>Cancelamento</th><th>Índice</th></tr></thead><tbody>${history.map(h=>`<tr><td>${new Date(h.date+'T12:00:00').toLocaleDateString('pt-BR')}</td><td>${money(h.revenue)}</td><td>${money(h.ticket)}</td><td>${pct(h.cancellation)}</td><td>${Number(h.score||0).toFixed(0)}</td></tr>`).join('')}</tbody></table>`
+    : '<p>O histórico crescerá a cada nova importação.</p>';
 };
 
 const today=new Date().toISOString().slice(0,10); $('indicator-date').value=today; $('competence').value=today.slice(0,7); $('target-competence').value=today.slice(0,7);
