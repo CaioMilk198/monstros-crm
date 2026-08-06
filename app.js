@@ -1,5 +1,5 @@
 console.info('MONSTROS CRM v0.8 - Mission Control');
-window.MONSTROS_CRM_VERSION='0.8.0';
+window.MONSTROS_CRM_VERSION='0.9.0';
 let client = null;
 let profile = null;
 let preview = null;
@@ -143,6 +143,8 @@ async function loadDashboard(){
   $('insight-grid').innerHTML=(data.insights||[]).map(x=>`<div class="insight-card"><strong>${x.title}</strong><p>${x.text}</p></div>`).join('');
   $('monstrao-summary').textContent=buildExecutiveSummary(data);
   await loadManualMissions();
+  await loadDirectorPilot();
+  await loadAnalyticsPilot();
   if(window.MonsterEngine){
     const engineData=await window.MonsterEngine.load(client);
     window.MonsterEngine.renderDashboard();
@@ -193,7 +195,8 @@ function sellerDiagnosis(r,team){
   return ['Acompanhar','warn'];
 }
 function renderRanking(rows){
-  const ordered=[...(rows||[])].sort((a,b)=>Number(b.revenue||0)-Number(a.revenue||0));
+  const ordered=[...(rows||[])].sort((a,b)=>rankingMode==='monster'
+?Number(b.score||0)-Number(a.score||0):Number(b.revenue||0)-Number(a.revenue||0));
   $('ranking-body').innerHTML=ordered.map((r,i)=>{
     const dna=window.MonsterEngine?.dnaForSeller(r.seller_id);
     const fallback=sellerDiagnosis(r,ordered);
@@ -273,6 +276,8 @@ window.changeManualMissionStatus=async(id,status)=>{
   if(error) alert(error.message);
   else {
     await loadManualMissions();
+  await loadDirectorPilot();
+  await loadAnalyticsPilot();
     await loadDashboard();
   }
 };
@@ -313,7 +318,43 @@ $('save-mission-button').onclick=async()=>{
   $('mission-minutes').value='20';
   setTimeout(()=>$('mission-form').classList.add('hidden'),500);
   await loadManualMissions();
+  await loadDirectorPilot();
+  await loadAnalyticsPilot();
 };
+
+
+async function loadDirectorPilot(){
+  if(!client||!profile)return;
+  const date=dashboardPayload?.date||new Date().toISOString().slice(0,10);
+  await client.rpc('capture_operation_snapshot',{p_date:date});
+  const {data,error}=await client.rpc('get_director_payload',{p_date:date});
+  if(error){console.warn('Director',error);return}
+  directorPayload=data; renderDirectorPilot(data);
+}
+function renderDirectorPilot(d){
+  if(!d?.date)return;
+  const r=d.radar||{};
+  const cards=[['🟢','Oportunidade',money(r.opportunity||0)],['🔴','Risco',r.risk],['🟡','Atenção',r.attention],['🔵','Destaque',r.highlight],['⚡','Missão',r.mission],['📈','Tendência',r.trend],['💰','Ganho rápido',r.quick_win]];
+  if($('director-radar'))$('director-radar').innerHTML=cards.map(c=>`<div class="radar-card"><span>${c[0]}</span><small>${c[1]}</small><strong>${c[2]||'—'}</strong></div>`).join('');
+  const list=a=>`<ul>${(a||[]).map(x=>`<li>${x}</li>`).join('')}</ul>`;
+  if($('director-happened'))$('director-happened').innerHTML=list(d.what_happened);
+  if($('director-why'))$('director-why').innerHTML=list(d.why_it_happened);
+  const c=d.cost||{};
+  if($('director-cost'))$('director-cost').innerHTML=`<div class="cost-total">${money(c.total_opportunity||0)}</div><p>Ticket: ${money(c.ticket_opportunity||0)}<br>Cancelamento: ${money(c.cancellation_loss||0)}<br>Baixo volume: ${money(c.active_opportunity||0)}</p>`;
+  if($('director-priorities'))$('director-priorities').innerHTML=(d.priorities||[]).map(p=>`<div class="director-priority"><div class="priority-number">${p.order}</div><div><h4>${p.title}</h4><p>${p.action}</p><b>Impacto ${money(p.impact||0)} • ${p.minutes} min</b><div><button onclick="this.nextElementSibling.classList.toggle('hidden')">Ver vendedores</button><div class="priority-sellers hidden">${(p.seller_names||[]).map((n,i)=>`<button class="seller-chip" onclick="openSeller360('${p.seller_ids[i]}')">${n}</button>`).join('')}</div></div></div></div>`).join('');
+}
+async function loadAnalyticsPilot(){
+  if(!client||!profile)return;
+  const {data,error}=await client.rpc('get_operation_timeline',{p_limit:30});
+  if(error||!$('analytics-timeline'))return;
+  const rows=data||[];
+  if(!rows.length){$('analytics-timeline').innerHTML='<p>O histórico aparecerá nas próximas importações.</p>';return}
+  const x=rows[0];
+  $('analytics-summary').innerHTML=`<div class="analytics-card"><small>Índice</small><strong>${Number(x.monster_index||0).toFixed(0)}</strong></div><div class="analytics-card"><small>Receita</small><strong>${money(x.revenue)}</strong></div><div class="analytics-card"><small>Projeção</small><strong>${money(x.projection)}</strong></div><div class="analytics-card"><small>Oportunidade</small><strong>${money(x.opportunity_total)}</strong></div>`;
+  $('analytics-timeline').innerHTML=rows.map(r=>`<div class="timeline-item"><b>${new Date(r.indicator_date+'T12:00').toLocaleDateString('pt-BR')}</b><span>Índice ${Number(r.monster_index||0).toFixed(0)}</span><span>${money(r.revenue)}</span><small>${r.revenue_change==null?'Primeiro registro':`Variação ${pct(r.revenue_change)}`}</small></div>`).join('');
+}
+$('ranking-commercial-tab').onclick=()=>{rankingMode='commercial';renderRanking(dashboardPayload?.ranking||[])};
+$('ranking-monster-tab').onclick=()=>{rankingMode='monster';renderRanking(dashboardPayload?.ranking||[])};
 
 $('claim-admin-button').onclick=async()=>{
   setMessage('settings-message','Ativando...');
