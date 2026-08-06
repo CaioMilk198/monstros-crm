@@ -1,5 +1,5 @@
-console.info('MONSTROS AI v2.2 - Executive Intelligence Pilot');
-window.MONSTROS_CRM_VERSION='2.2.0-piloto';
+console.info('MONSTROS AI v2.3 - Unified Intelligence State');
+window.MONSTROS_CRM_VERSION='2.3.0-piloto';
 let client = null;
 let profile = null;
 let preview = null;
@@ -35,6 +35,71 @@ const formatBRLInput = (value) => {
   }).format(parsed);
 };
 const dateBR = (v) => v ? new Date(v).toLocaleString('pt-BR') : '—';
+
+
+function operationState(){
+  const s=dashboardPayload?.summary||{};
+  const e=window.MonsterEngine?.payload||dashboardPayload?.engine||directorPayload?.engine||{};
+  const p=e.projection||{};
+  const h=e.health||{};
+  const m=e.money||directorPayload?.cost||{};
+  const cal=e.calendar||dashboardPayload?.calendar||{};
+  const ranking=rankingRows();
+  const revenue=Number(p.current_revenue ?? s.revenue ?? 0);
+  const target=Number(p.target ?? s.target ?? 0);
+  const projection=Number(p.projected_revenue ?? s.projection ?? 0);
+  const opportunity=Number(m.total_opportunity ?? directorPayload?.radar?.opportunity ?? ranking.reduce((sum,r)=>sum+coachMetrics(r).total,0));
+  const risks=operationalRisks();
+  const leaders=operationalLeaders();
+  const primaryRisk=risks[0]||null;
+  const leader=leaders[0]||null;
+  return {
+    date:dashboardPayload?.date||directorPayload?.date||null,
+    revenue,target,projection,opportunity,
+    attainment:target>0?revenue/target:0,
+    projectedAttainment:target>0?projection/target:0,
+    gap:Math.max(0,target-projection),
+    orders:Number(s.orders||0),
+    ticket:Number(s.average_ticket||0),
+    cancellation:Number(s.cancellation_rate||0),
+    monsterIndex:Number(h.monster_index||0),
+    healthStatus:h.status||'—',
+    elapsedDays:Number(cal.elapsed_business_days||0),
+    totalDays:Number(cal.total_business_days||0),
+    remainingDays:Number(cal.remaining_business_days||0),
+    dailyRate:Number(cal.daily_rate||p.daily_rate||0),
+    requiredDailyRate:Number(p.required_daily_rate||0),
+    lowVolumeCount:Number(h.low_volume_count||risks.filter(r=>sellerAttention(r).some(x=>/baixo volume|abaixo do ritmo/i.test(x))).length),
+    cancellationRiskCount:Number(h.cancellation_risk_count||risks.filter(r=>sellerAttention(r).some(x=>/cancelamento/i.test(x))).length),
+    risks,leaders,primaryRisk,leader,
+    money:{
+      total:opportunity,
+      lowVolume:Number(m.active_opportunity||m.low_volume_opportunity||0),
+      ticket:Number(m.ticket_opportunity||0),
+      cancellation:Number(m.cancellation_loss||m.cancellation_opportunity||0)
+    }
+  };
+}
+
+function syncUnifiedOperationUI(){
+  if(!dashboardPayload?.date)return;
+  const st=operationState();
+  if($('kpi-revenue'))$('kpi-revenue').textContent=money(st.revenue);
+  if($('kpi-target'))$('kpi-target').textContent=money(st.target);
+  if($('kpi-projection'))$('kpi-projection').textContent=money(st.projection);
+  if($('kpi-projected-attainment'))$('kpi-projected-attainment').textContent=`${pct(st.projectedAttainment)} projetado por dias úteis`;
+  if($('kpi-attainment'))$('kpi-attainment').textContent=`${pct(st.attainment)} da meta`;
+  if($('kpi-gap'))$('kpi-gap').textContent=`Gap projetado: ${money(st.gap)}`;
+  if($('route-now'))$('route-now').textContent=pct(st.attainment);
+  if($('route-now-detail'))$('route-now-detail').textContent=`${money(st.revenue)} realizados`;
+  if($('route-projection'))$('route-projection').textContent=money(st.projection);
+  if($('route-projection-detail'))$('route-projection-detail').textContent=`${pct(st.projectedAttainment)} da meta • ${st.elapsedDays}/${st.totalDays} dias úteis`;
+  if($('route-money'))$('route-money').textContent=money(st.opportunity);
+  if($('route-money-detail'))$('route-money-detail').textContent=st.opportunity>0?'potencial financeiro estimado':'nenhuma oportunidade calculada';
+  if($('monster-index')&&st.monsterIndex)$('monster-index').textContent=st.monsterIndex.toFixed(0);
+  if($('monster-status')&&st.healthStatus)$('monster-status').textContent=st.healthStatus;
+  updateDirectorBriefing();
+}
 
 function initClient(){
   const url=localStorage.getItem('monstros_supabase_url');
@@ -198,6 +263,10 @@ async function loadDashboard(){
       renderRanking(updated.sort((a,b)=>Number(b.revenue||0)-Number(a.revenue||0)));
     }
   }
+  syncUnifiedOperationUI();
+  renderDirectorPilot(directorPayload||{});
+  renderWarRoom();
+  renderSmartTimeline();
 }
 function sellerDiagnosis(r,team){
   const avgRevenue=(team||[]).reduce((s,x)=>s+Number(x.revenue||0),0)/Math.max(1,(team||[]).length);
@@ -360,34 +429,41 @@ async function loadDirectorPilot(){
   await client.rpc('capture_operation_snapshot',{p_date:date});
   const {data,error}=await client.rpc('get_director_payload',{p_date:date});
   if(error){console.warn('Director',error);return}
-  directorPayload=data; renderDirectorPilot(data);
+  directorPayload=data; renderDirectorPilot(data); syncUnifiedOperationUI();
 }
 function renderDirectorPilot(d){
-  if(!d?.date)return;
-  const r=d.radar||{};
-  const cards=[['🟢','Oportunidade',money(r.opportunity||0)],['🔴','Risco',r.risk],['🟡','Atenção',r.attention],['🔵','Destaque',r.highlight],['⚡','Missão',r.mission],['📈','Tendência',r.trend],['💰','Ganho rápido',r.quick_win]];
+  if(!dashboardPayload?.date && !d?.date)return;
+  const st=operationState();
+  const r=d?.radar||{};
+  const riskName=st.primaryRisk?.seller_name||r.risk||'Sem risco crítico';
+  const leaderName=st.leader?.seller_name||r.highlight||'Sem destaque calculado';
+  const trend=st.target>0?(st.projection>=st.target?'Acima da meta':`Abaixo da meta em ${money(st.gap)}`):'Meta não configurada';
+  const mission=st.primaryRisk?`Recuperar ${st.primaryRisk.seller_name}`:(st.leader?`Replicar prática de ${st.leader.seller_name}`:'Acompanhar a operação');
+  const quickWin=st.money.ticket>=Math.max(st.money.lowVolume,st.money.cancellation)?`Elevar ticket • ${money(st.money.ticket)}`:st.money.lowVolume>=st.money.cancellation?`Recuperar produtividade • ${money(st.money.lowVolume)}`:`Reduzir cancelamento • ${money(st.money.cancellation)}`;
+  const cards=[['🟢','Oportunidade',money(st.opportunity)],['🔴','Risco',riskName],['🟡','Atenção',`${st.lowVolumeCount} baixo volume • ${st.cancellationRiskCount} cancelamento`],['🔵','Destaque',leaderName],['⚡','Missão',mission],['📈','Tendência',trend],['💰','Ganho rápido',quickWin]];
   if($('director-radar'))$('director-radar').innerHTML=cards.map(c=>`<div class="radar-card"><span>${c[0]}</span><small>${c[1]}</small><strong>${c[2]||'—'}</strong></div>`).join('');
   const list=a=>`<ul>${(a||[]).map(x=>`<li>${x}</li>`).join('')}</ul>`;
-  if($('director-happened'))$('director-happened').innerHTML=list(d.what_happened);
-  if($('director-why'))$('director-why').innerHTML=list(d.why_it_happened);
-  const c=d.cost||{};
-  const costs=[['Baixo volume',Number(c.active_opportunity||0)],['Ticket',Number(c.ticket_opportunity||0)],['Cancelamento',Number(c.cancellation_loss||0)]].sort((a,b)=>b[1]-a[1]);
+  if($('director-happened'))$('director-happened').innerHTML=list(d?.what_happened||[`Faturamento atual: ${money(st.revenue)}`,`Projeção por dias úteis: ${money(st.projection)}`,`${st.lowVolumeCount} vendedor(es) abaixo do ritmo`,`${st.cancellationRiskCount} vendedor(es) com risco de cancelamento`]);
+  if($('director-why'))$('director-why').innerHTML=list(d?.why_it_happened||['A perda está concentrada nos indicadores com maior oportunidade financeira.','As prioridades foram ordenadas por impacto e urgência.']);
+  const c=d?.cost||{};
+  const stCost=operationState().money;
+  const costs=[['Baixo volume',Number(stCost.lowVolume||c.active_opportunity||0)],['Ticket',Number(stCost.ticket||c.ticket_opportunity||0)],['Cancelamento',Number(stCost.cancellation||c.cancellation_loss||0)]].sort((a,b)=>b[1]-a[1]);
   const total=Math.max(1,costs.reduce((s,x)=>s+x[1],0));
-  if($('director-cost'))$('director-cost').innerHTML=`<div class="cost-total">${money(c.total_opportunity||0)}</div>`;
+  if($('director-cost'))$('director-cost').innerHTML=`<div class="cost-total">${money(operationState().opportunity)}</div>`;
   if($('director-cost-bars'))$('director-cost-bars').innerHTML=costs.map(x=>`<div class="cost-bar-row"><div><span>${x[0]}</span><strong>${money(x[1])}</strong></div><div class="cost-bar-track"><div style="width:${Math.max(2,x[1]/total*100)}%"></div></div><small>${(x[1]/total*100).toFixed(0)}% do potencial</small></div>`).join('');
 
-  const eng=d.engine||{}, proj=eng.projection||{}, health=eng.health||{};
-  const recovery=Number(c.total_opportunity||0);
-  const expectedRevenue=Number(proj.projected_revenue||0)+recovery;
-  const expectedAttainment=Number(proj.target||0)>0?expectedRevenue/Number(proj.target):0;
-  const expectedIndex=Math.min(100,Number(health.monster_index||0)+Math.min(18,recovery/Math.max(1,Number(proj.target||1))*100));
+  const recovery=st.opportunity;
+  const expectedRevenue=st.projection+recovery;
+  const expectedAttainment=st.target>0?expectedRevenue/st.target:0;
+  const expectedIndex=Math.min(100,st.monsterIndex+Math.min(18,recovery/Math.max(1,st.target)*100));
   if($('director-expected'))$('director-expected').innerHTML=`
     <div><small>Projeção com recuperação</small><strong>${money(expectedRevenue)}</strong></div>
     <div><small>Atingimento possível</small><strong>${pct(expectedAttainment)}</strong></div>
-    <div><small>Índice estimado</small><strong>${Number(health.monster_index||0).toFixed(0)} → ${expectedIndex.toFixed(0)}</strong></div>
+    <div><small>Índice estimado</small><strong>${st.monsterIndex.toFixed(0)} → ${expectedIndex.toFixed(0)}</strong></div>
     <div><small>Ganho potencial</small><strong>${money(recovery)}</strong></div>`;
 
-  if($('director-priorities'))$('director-priorities').innerHTML=(d.priorities||[]).map((p,i)=>{
+  const directorPriorities=(d?.priorities?.length?d.priorities:executivePriorities().map((p,i)=>({order:i+1,title:p.title,action:p.action,impact:p.impact,minutes:i===0?30:15,seller_names:p.seller?[p.seller.seller_name]:[],seller_ids:p.seller?[p.seller.seller_id]:[]})));
+  if($('director-priorities'))$('director-priorities').innerHTML=directorPriorities.map((p,i)=>{
     const urgency=i===0?['Faça hoje','today']:i===1?['Faça amanhã','tomorrow']:['Faça esta semana','week'];
     return `<div class="director-priority ${urgency[1]}"><div class="priority-number">${p.order}</div><div class="priority-content"><span class="urgency ${urgency[1]}">${urgency[0]}</span><h4>${p.title}</h4><p>${p.action}</p><b>Impacto ${money(p.impact||0)} • ${p.minutes} min</b><div><button onclick="this.nextElementSibling.classList.toggle('hidden')">Ver vendedores</button><div class="priority-sellers hidden">${(p.seller_names||[]).map((n,j)=>`<button class="seller-chip" onclick="openSeller360('${p.seller_ids[j]}')">${n}</button>`).join('')}</div></div></div></div>`;
   }).join('');
@@ -1082,23 +1158,33 @@ function executivePriorities(){
 }
 function updateDirectorBriefing(){
   if(!$('director-briefing-text'))return;
-  const eng=dashboardPayload?.engine||{}, moneyData=eng.money||{}, proj=eng.projection||{};
+  const st=operationState();
   const priorities=executivePriorities();
-  const total=Number(moneyData.total_opportunity||priorities.reduce((s,p)=>s+p.impact,0));
+  const priority=priorities[0];
   $('director-greeting').textContent=`${new Date().getHours()<12?'Bom dia':new Date().getHours()<18?'Boa tarde':'Boa noite'}, ${firstName()}.`;
-  $('director-briefing-text').innerHTML=dashboardPayload?.date
-    ? `Hoje existem <b>${money(total)}</b> em oportunidade mapeada. ${priorities[0]?`A prioridade nº 1 é <b>${priorities[0].title}</b>, com impacto estimado de <b>${money(priorities[0].impact)}</b>.`:''} A projeção atual é <b>${money(proj.projected_revenue||dashboardPayload?.summary?.projection)}</b>.`
-    : 'Importe os dados para receber um briefing executivo.';
+  if(!st.date){$('director-briefing-text').textContent='Importe os dados para receber um briefing executivo.';return;}
+  const situation=st.projection>=st.target
+    ? `A projeção está ${money(st.projection-st.target)} acima da meta.`
+    : `A projeção está ${money(st.gap)} abaixo da meta.`;
+  const cause=st.lowVolumeCount||st.cancellationRiskCount
+    ? `${st.lowVolumeCount} vendedor(es) estão abaixo do ritmo e ${st.cancellationRiskCount} apresentam risco de cancelamento.`
+    : 'Não há risco crítico calculado neste momento.';
+  $('director-briefing-text').innerHTML=`
+    <b>Situação:</b> ${situation}
+    <b>Oportunidade:</b> ${money(st.opportunity)} mapeados.
+    <b>Causa principal:</b> ${cause}
+    ${priority?`<b>Ação nº 1:</b> ${priority.title}, com impacto estimado de ${money(priority.impact)}.`:''}
+    <b>Ritmo:</b> ${money(st.dailyRate)}/dia atual e ${money(st.requiredDailyRate)}/dia necessário.`;
 }
 function executiveMeetingText(){
-  const s=dashboardPayload?.summary||{}, p=dashboardPayload?.engine?.projection||{}, priorities=executivePriorities(), leader=operationalLeaders()[0];
+  const st=operationState(), priorities=executivePriorities(), leader=st.leader;
   return `<small>REUNIÃO DE 10 MINUTOS</small><h2>Roteiro pronto para conduzir a equipe</h2>
   <div class="meeting-agenda">
-  <section><b>1. Abertura — 1 min</b><p>Bom dia, equipe. Ontem fechamos com ${money(s.revenue)} e ${s.orders||0} pedidos. Hoje vamos concentrar energia no que mais move o caixa.</p></section>
-  <section><b>2. Placar — 2 min</b><p>Ticket atual: ${money(s.average_ticket)}. Cancelamento: ${pct(s.cancellation_rate)}. Projeção: ${money(p.projected_revenue||s.projection)}.</p></section>
-  <section><b>3. Reconhecimento — 1 min</b><p>${leader?`${leader.seller_name} lidera o faturamento com ${money(leader.revenue)}. Vamos identificar e repetir uma prática vencedora.`:'Reconhecer a melhor evolução do período.'}</p></section>
-  <section><b>4. Prioridades — 4 min</b>${priorities.slice(0,3).map((x,i)=>`<p><strong>${i+1}. ${x.title}</strong><br>${x.action} ${x.impact?`Impacto: ${money(x.impact)}.`:''}</p>`).join('')}</section>
-  <section><b>5. Fechamento — 2 min</b><p>Cada pessoa sai com uma ação clara para o próximo bloco. Ao final, vamos conferir resultado, aprendizado e próxima decisão.</p></section></div>
+  <section><b>1. Abertura — 1 min</b><p>Equipe, estamos com ${money(st.revenue)} realizados em ${st.orders} pedidos. Hoje o foco é atacar o que mais movimenta o caixa.</p></section>
+  <section><b>2. Placar — 2 min</b><p>Ticket: ${money(st.ticket)}. Cancelamento: ${pct(st.cancellation)}. Projeção por dias úteis: ${money(st.projection)} (${pct(st.projectedAttainment)} da meta). Ritmo necessário: ${money(st.requiredDailyRate)}/dia.</p></section>
+  <section><b>3. Reconhecimento — 1 min</b><p>${leader?`${leader.seller_name} lidera com ${money(leader.revenue)}. Vamos identificar uma prática concreta para replicar hoje.`:'Vamos reconhecer a melhor evolução comprovada após a próxima atualização.'}</p></section>
+  <section><b>4. Prioridades — 4 min</b>${priorities.slice(0,3).map((x,i)=>`<p><strong>${i+1}. ${x.title}</strong><br>${x.action} ${x.impact?`Impacto estimado: ${money(x.impact)}.`:''}</p>`).join('')}</section>
+  <section><b>5. Fechamento — 2 min</b><p>Cada responsável sai com ação, prazo e indicador de sucesso. Na próxima atualização vamos comparar antes e depois.</p></section></div>
   <div class="modal-actions"><button onclick="navigator.clipboard.writeText(this.closest('.modal-card').innerText)">Copiar reunião</button><button class="secondary" data-close-modal>Fechar</button></div>`;
 }
 function simulatorHtml(){
@@ -1155,9 +1241,9 @@ function renderTimelineFilter(type='all'){
 }
 const _renderTimeline22=renderSmartTimeline;
 renderSmartTimeline=function(){
-  const date=dashboardPayload?.date, risks=operationalRisks().slice(0,4), leader=operationalLeaders()[0], potential=dashboardPayload?.engine?.money?.total_opportunity||rankingRows().reduce((s,r)=>s+coachMetrics(r).total,0);
+  const st=operationState(), date=st.date, risks=st.risks.slice(0,4), leader=st.leader, potential=st.opportunity;
   smartTimelineEvents=[];
-  if(date)smartTimelineEvents.push({time:'08:00',type:'import',title:'Dados consolidados',text:`Importação de ${new Date(date+'T12:00').toLocaleDateString('pt-BR')} • ${rankingRows().length} vendedores • ${money(dashboardPayload?.summary?.revenue)} realizados.`});
+  if(date)smartTimelineEvents.push({time:'08:00',type:'import',title:'Dados consolidados',text:`Importação de ${new Date(date+'T12:00').toLocaleDateString('pt-BR')} • ${rankingRows().length} vendedores • ${money(st.revenue)} realizados.`});
   risks.forEach((r,i)=>smartTimelineEvents.push({time:`${String(8+i).padStart(2,'0')}:${15+i*10}`,type:'risk',seller_id:r.seller_id,title:`Atenção: ${r.seller_name}`,text:`${sellerAttention(r).filter(x=>/baixo|cancelamento|risco|evolução/i.test(x)).join(' • ')||'Desvio identificado'} • impacto ${money(coachMetrics(r).total)}.`}));
   if(leader)smartTimelineEvents.push({time:'11:30',type:'win',seller_id:leader.seller_id,title:'Destaque identificado',text:`${leader.seller_name} lidera com ${money(leader.revenue)}. Boa prática pronta para replicação.`});
   smartTimelineEvents.push({time:'Agora',type:'ai',title:'Monster Director recalculado',text:`Potencial estimado: ${money(potential)}. Próxima decisão: ${executivePriorities()[0]?.title||'acompanhar evolução da equipe'}.`});renderTimelineFilter('all');
