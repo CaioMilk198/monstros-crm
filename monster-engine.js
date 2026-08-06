@@ -7,6 +7,11 @@ window.MonsterEngine = {
     const {data,error} = await client.rpc('get_monster_engine_payload',{p_date:today});
     if(error) {
       console.error('Monster Engine:',error);
+      const message=error.details||error.hint||error.message||'Falha no motor de inteligência';
+      ['monster-status','route-now-detail','route-projection-detail','route-money-detail'].forEach(id=>{
+        const el=document.getElementById(id);
+        if(el) el.textContent=message;
+      });
       return null;
     }
     this.payload=data;
@@ -27,12 +32,13 @@ window.MonsterEngine = {
     const h=p.health||{}, proj=p.projection||{}, m=p.money||{};
     document.getElementById('monster-index').textContent=Number(h.monster_index||0).toFixed(0);
     document.getElementById('monster-status').textContent=h.status||'—';
-    document.getElementById('route-now').textContent=this.pct(proj.target?proj.current_revenue/proj.target:0);
+    document.getElementById('route-now').textContent=this.pct(proj.current_attainment);
     document.getElementById('route-now-detail').textContent=`${this.money(proj.current_revenue)} realizados`;
     document.getElementById('route-projection').textContent=this.money(proj.projected_revenue);
-    document.getElementById('route-projection-detail').textContent=`${this.pct(proj.projected_attainment)} da meta`;
+    document.getElementById('route-projection-detail').textContent=
+      `${this.pct(proj.projected_attainment)} da meta • ${p.calendar.elapsed_business_days}/${p.calendar.total_business_days} dias úteis`;
     document.getElementById('route-money').textContent=this.money(m.total_opportunity);
-    document.getElementById('route-money-detail').textContent='potencial estimado';
+    document.getElementById('route-money-detail').textContent='potencial financeiro estimado';
   },
 
   renderIntelligence() {

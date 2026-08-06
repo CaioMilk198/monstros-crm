@@ -1,5 +1,5 @@
-console.info('MONSTROS CRM v0.7 - SaaS Intelligence Beta');
-window.MONSTROS_CRM_VERSION='0.7.0';
+console.info('MONSTROS CRM v0.7.1 - Intelligence Fix');
+window.MONSTROS_CRM_VERSION='0.7.1';
 let client = null;
 let profile = null;
 let preview = null;
@@ -142,9 +142,25 @@ async function loadDashboard(){
   $('insight-grid').innerHTML=(data.insights||[]).map(x=>`<div class="insight-card"><strong>${x.title}</strong><p>${x.text}</p></div>`).join('');
   $('monstrao-summary').textContent=buildExecutiveSummary(data);
   if(window.MonsterEngine){
-    await window.MonsterEngine.load(client);
+    const engineData=await window.MonsterEngine.load(client);
     window.MonsterEngine.renderDashboard();
     window.MonsterEngine.renderIntelligence();
+    if(engineData?.projection){
+      const ep=engineData.projection;
+      $('kpi-projection').textContent=money(ep.projected_revenue);
+      $('kpi-projection-sub').textContent=`${pct(ep.projected_attainment)} projetado por dias úteis`;
+      const projectionCard=$('kpi-projection')?.closest('.kpi');
+      if(projectionCard) projectionCard.title=
+        `Média diária: ${money(ep.daily_rate)} | Ritmo necessário: ${money(ep.required_daily_rate)}`;
+    }
+    if(engineData?.seller_dna?.length){
+      const rankMap=new Map(engineData.seller_dna.map(s=>[s.seller_id,s]));
+      const updated=(dashboardPayload?.ranking||[]).map(r=>({
+        ...r,
+        score:rankMap.get(r.seller_id)?.score ?? r.score
+      }));
+      renderRanking(updated);
+    }
   }
 }
 function sellerDiagnosis(r,team){

@@ -1,22 +1,16 @@
 # CHANGELOG
 
-## v0.7.0 — Monster Engine Beta
+## v0.7.1 — Intelligence Fix
 
-### Adicionado
-- Projeção correta por dias úteis.
-- Configuração de dias úteis totais e trabalhados.
-- Índice Monstro da operação.
-- Saúde por Receita, Ticket, Cancelamento e Ativo.
-- Centro “Onde está o dinheiro”.
-- Oportunidade financeira por ticket, cancelamento e ativo.
-- DNA Comercial composto: até quatro forças e dois pontos de atenção.
-- Medalhas de ouro, prata e bronze no Ranking.
-- Perfil 360 clicável a partir do Ranking e do DNA.
-- Histórico individual por importação.
-- Participação do vendedor no resultado da equipe.
+### Corrigido
+- Projeção do card principal agora usa dias úteis.
+- Índice Monstro e cards de rota passam a receber dados do Monster Engine.
+- Tela Inteligência deixa de ficar vazia.
+- Score 2.0 reduz a concentração de notas 100.
+- DNA Comercial suporta múltiplas forças e pontos de atenção.
+- Mensagens de erro do Monster Engine ficam visíveis no Console e nos cards.
 
-### Próxima sprint
-- Missões manuais e automáticas com impacto financeiro.
-- Feedback Inteligente.
-- Linha do tempo do vendedor.
-- Monstrão Director usando o Monster Engine.
+### Fórmula da projeção
+- Média diária = faturamento atual ÷ dias úteis trabalhados.
+- Projeção = média diária × dias úteis totais.
+- Ritmo necessário = valor restante ÷ dias úteis restantes.
