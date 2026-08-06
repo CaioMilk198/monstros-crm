@@ -1,5 +1,5 @@
-console.info('MONSTEROS v0.9.2 - Ranking State Hotfix');
-window.MONSTROS_CRM_VERSION='0.9.3';
+console.info('MONSTEROS v1.0 - Intelligence Pilot');
+window.MONSTROS_CRM_VERSION='1.0.0';
 let client = null;
 let profile = null;
 let preview = null;
@@ -196,7 +196,7 @@ function sellerDiagnosis(r,team){
   if(Number(r.revenue||0)<avgRevenue*0.65) return ['Abaixo do ritmo','risk'];
   if(Number(r.score||0)>=85) return ['Destaque','good'];
   if(Number(r.average_ticket||0)<((team||[]).reduce((s,x)=>s+Number(x.average_ticket||0),0)/Math.max(1,(team||[]).length))*0.85) return ['Ticket em atenção','warn'];
-  return ['Acompanhar','warn'];
+  return ['Consistente','good'];
 }
 function renderRanking(rows){
   const ordered=[...(rows||[])].sort((a,b)=>rankingMode==='monster'
@@ -344,8 +344,40 @@ function renderDirectorPilot(d){
   if($('director-happened'))$('director-happened').innerHTML=list(d.what_happened);
   if($('director-why'))$('director-why').innerHTML=list(d.why_it_happened);
   const c=d.cost||{};
-  if($('director-cost'))$('director-cost').innerHTML=`<div class="cost-total">${money(c.total_opportunity||0)}</div><p>Ticket: ${money(c.ticket_opportunity||0)}<br>Cancelamento: ${money(c.cancellation_loss||0)}<br>Baixo volume: ${money(c.active_opportunity||0)}</p>`;
-  if($('director-priorities'))$('director-priorities').innerHTML=(d.priorities||[]).map(p=>`<div class="director-priority"><div class="priority-number">${p.order}</div><div><h4>${p.title}</h4><p>${p.action}</p><b>Impacto ${money(p.impact||0)} • ${p.minutes} min</b><div><button onclick="this.nextElementSibling.classList.toggle('hidden')">Ver vendedores</button><div class="priority-sellers hidden">${(p.seller_names||[]).map((n,i)=>`<button class="seller-chip" onclick="openSeller360('${p.seller_ids[i]}')">${n}</button>`).join('')}</div></div></div></div>`).join('');
+  const costs=[['Baixo volume',Number(c.active_opportunity||0)],['Ticket',Number(c.ticket_opportunity||0)],['Cancelamento',Number(c.cancellation_loss||0)]].sort((a,b)=>b[1]-a[1]);
+  const total=Math.max(1,costs.reduce((s,x)=>s+x[1],0));
+  if($('director-cost'))$('director-cost').innerHTML=`<div class="cost-total">${money(c.total_opportunity||0)}</div>`;
+  if($('director-cost-bars'))$('director-cost-bars').innerHTML=costs.map(x=>`<div class="cost-bar-row"><div><span>${x[0]}</span><strong>${money(x[1])}</strong></div><div class="cost-bar-track"><div style="width:${Math.max(2,x[1]/total*100)}%"></div></div><small>${(x[1]/total*100).toFixed(0)}% do potencial</small></div>`).join('');
+
+  const eng=d.engine||{}, proj=eng.projection||{}, health=eng.health||{};
+  const recovery=Number(c.total_opportunity||0);
+  const expectedRevenue=Number(proj.projected_revenue||0)+recovery;
+  const expectedAttainment=Number(proj.target||0)>0?expectedRevenue/Number(proj.target):0;
+  const expectedIndex=Math.min(100,Number(health.monster_index||0)+Math.min(18,recovery/Math.max(1,Number(proj.target||1))*100));
+  if($('director-expected'))$('director-expected').innerHTML=`
+    <div><small>Projeção com recuperação</small><strong>${money(expectedRevenue)}</strong></div>
+    <div><small>Atingimento possível</small><strong>${pct(expectedAttainment)}</strong></div>
+    <div><small>Índice estimado</small><strong>${Number(health.monster_index||0).toFixed(0)} → ${expectedIndex.toFixed(0)}</strong></div>
+    <div><small>Ganho potencial</small><strong>${money(recovery)}</strong></div>`;
+
+  if($('director-priorities'))$('director-priorities').innerHTML=(d.priorities||[]).map((p,i)=>{
+    const urgency=i===0?['Faça hoje','today']:i===1?['Faça amanhã','tomorrow']:['Faça esta semana','week'];
+    return `<div class="director-priority ${urgency[1]}"><div class="priority-number">${p.order}</div><div class="priority-content"><span class="urgency ${urgency[1]}">${urgency[0]}</span><h4>${p.title}</h4><p>${p.action}</p><b>Impacto ${money(p.impact||0)} • ${p.minutes} min</b><div><button onclick="this.nextElementSibling.classList.toggle('hidden')">Ver vendedores</button><div class="priority-sellers hidden">${(p.seller_names||[]).map((n,j)=>`<button class="seller-chip" onclick="openSeller360('${p.seller_ids[j]}')">${n}</button>`).join('')}</div></div></div></div>`;
+  }).join('');
+}
+function renderLineChart(id,rows,key,formatter=(v)=>String(v),empty='Aguardando histórico'){
+  const el=$(id); if(!el)return;
+  const data=[...(rows||[])].reverse().filter(r=>r[key]!=null && Number.isFinite(Number(r[key])));
+  if(data.length<2){el.innerHTML=`<div class="chart-empty">${empty}<small>O gráfico ganhará evolução após novas importações.</small></div>`;return;}
+  const vals=data.map(r=>Number(r[key])); const min=Math.min(...vals),max=Math.max(...vals); const span=Math.max(1,max-min);
+  const pts=vals.map((v,i)=>`${10+i*(280/Math.max(1,vals.length-1))},${105-((v-min)/span)*80}`).join(' ');
+  const last=vals[vals.length-1];
+  el.innerHTML=`<svg viewBox="0 0 300 120" preserveAspectRatio="none"><polyline points="${pts}" fill="none" stroke="currentColor" stroke-width="3"/><line x1="10" y1="108" x2="290" y2="108" stroke="currentColor" opacity=".2"/></svg><strong>${formatter(last)}</strong><small>${data.length} registros</small>`;
+}
+function renderTargetChart(rows){
+  const el=$('chart-target');if(!el)return;const x=(rows||[])[0];if(!x){el.innerHTML='<div class="chart-empty">Aguardando dados</div>';return;}
+  const target=Number(x.target||0),projection=Number(x.projection||0),max=Math.max(1,target,projection);
+  el.innerHTML=`<div class="compare-bar"><span>Meta ${money(target)}</span><div><i style="width:${target/max*100}%"></i></div></div><div class="compare-bar projection"><span>Projeção ${money(projection)}</span><div><i style="width:${projection/max*100}%"></i></div></div>`;
 }
 async function loadAnalyticsPilot(){
   if(!client||!profile)return;
@@ -355,7 +387,16 @@ async function loadAnalyticsPilot(){
   if(!rows.length){$('analytics-timeline').innerHTML='<p>O histórico aparecerá nas próximas importações.</p>';return}
   const x=rows[0];
   $('analytics-summary').innerHTML=`<div class="analytics-card"><small>Índice</small><strong>${Number(x.monster_index||0).toFixed(0)}</strong></div><div class="analytics-card"><small>Receita</small><strong>${money(x.revenue)}</strong></div><div class="analytics-card"><small>Projeção</small><strong>${money(x.projection)}</strong></div><div class="analytics-card"><small>Oportunidade</small><strong>${money(x.opportunity_total)}</strong></div>`;
-  $('analytics-timeline').innerHTML=rows.map(r=>`<div class="timeline-item"><b>${new Date(r.indicator_date+'T12:00').toLocaleDateString('pt-BR')}</b><span>Índice ${Number(r.monster_index||0).toFixed(0)}</span><span>${money(r.revenue)}</span><small>${r.revenue_change==null?'Primeiro registro':`Variação ${pct(r.revenue_change)}`}</small></div>`).join('');
+  renderLineChart('chart-revenue',rows,'revenue',money);
+  renderLineChart('chart-index',rows,'monster_index',v=>Number(v).toFixed(0));
+  renderLineChart('chart-ticket',rows,'average_ticket',money);
+  renderLineChart('chart-cancel',rows,'cancellation_rate',pct);
+  renderLineChart('chart-conversion',rows,'conversion_rate',pct,'Conversão ainda não importada');
+  renderTargetChart(rows);
+  const ranking=[...(dashboardPayload?.ranking||[])].sort((a,b)=>Number(b.revenue||0)-Number(a.revenue||0));
+  if($('analytics-top'))$('analytics-top').innerHTML=ranking.slice(0,5).map((r,i)=>`<button class="analytics-seller" onclick="openSeller360('${r.seller_id}')"><span>${i+1}. ${r.seller_name}</span><strong>${money(r.revenue)}</strong></button>`).join('');
+  if($('analytics-bottom'))$('analytics-bottom').innerHTML=ranking.slice(-5).reverse().map(r=>`<button class="analytics-seller risk" onclick="openSeller360('${r.seller_id}')"><span>${r.seller_name}</span><strong>${money(r.revenue)}</strong></button>`).join('');
+  $('analytics-timeline').innerHTML=rows.map(r=>`<div class="timeline-item"><b>${new Date(r.indicator_date+'T12:00').toLocaleDateString('pt-BR')}</b><span>Índice ${Number(r.monster_index||0).toFixed(0)}</span><span>${money(r.revenue)}</span><small>${r.revenue_change==null?'Primeiro registro':`${Number(r.revenue_change)>=0?'Subiu':'Caiu'} ${pct(Math.abs(Number(r.revenue_change)))}`}</small></div>`).join('');
 }
 const rankingCommercialTab=$('ranking-commercial-tab');
 const rankingMonsterTab=$('ranking-monster-tab');
@@ -627,6 +668,34 @@ $('save-calendar-button').onclick=async()=>{
   if(!error) await loadDashboard();
 };
 
+function radarSvg(labels,values){
+  const n=labels.length,cx=120,cy=110,R=82;
+  const point=(i,r)=>{const a=-Math.PI/2+i*2*Math.PI/n;return [cx+Math.cos(a)*r,cy+Math.sin(a)*r]};
+  const rings=[.25,.5,.75,1].map(k=>`<polygon points="${labels.map((_,i)=>point(i,R*k).join(',')).join(' ')}"/>`).join('');
+  const axes=labels.map((_,i)=>{const p=point(i,R);return `<line x1="${cx}" y1="${cy}" x2="${p[0]}" y2="${p[1]}"/>`}).join('');
+  const poly=values.map((v,i)=>point(i,R*Math.max(0,Math.min(1,v))).join(',')).join(' ');
+  const texts=labels.map((l,i)=>{const p=point(i,R+22);return `<text x="${p[0]}" y="${p[1]}" text-anchor="middle">${l}</text>`}).join('');
+  return `<svg viewBox="0 0 240 225" class="radar-svg"><g class="radar-grid">${rings}${axes}</g><polygon class="radar-area" points="${poly}"/>${texts}</svg>`;
+}
+function renderSellerRadar(latest,dna){
+  const ranking=dashboardPayload?.ranking||[];
+  const maxRev=Math.max(1,...ranking.map(x=>Number(x.revenue||0))),maxTicket=Math.max(1,...ranking.map(x=>Number(x.average_ticket||0))),maxActive=Math.max(1,...ranking.map(x=>Number(x.active_revenue||0)));
+  const values=[Number(latest.revenue||0)/maxRev,Number(latest.ticket||0)/maxTicket,Number(latest.active||0)/maxActive,1-Math.min(1,Number(latest.cancellation||0)/.25),Math.min(1,Number(latest.score||0)/100),Math.min(1,Number(dna?.participation||0)/.15)];
+  if($('profile360-radar'))$('profile360-radar').innerHTML=radarSvg(['Receita','Ticket','Ativo','Qualidade','Índice','Particip.'],values);
+}
+function renderSellerMoneyLeft(latest,dna){
+  const ranking=dashboardPayload?.ranking||[]; const n=Math.max(1,ranking.length);
+  const avgRev=ranking.reduce((s,x)=>s+Number(x.revenue||0),0)/n;
+  const avgTicket=ranking.reduce((s,x)=>s+Number(x.average_ticket||0),0)/n;
+  const targetCancel=.08;
+  const volumeGap=Math.max(0,avgRev-Number(latest.revenue||0));
+  const ticketGap=Math.max(0,avgTicket-Number(latest.ticket||0))*Number(latest.orders||0);
+  const cancelGap=Math.max(0,Number(latest.cancellation||0)-targetCancel)*Number(latest.revenue||0);
+  const total=volumeGap+ticketGap+cancelGap;
+  if($('profile360-money'))$('profile360-money').innerHTML=`<div class="money-left-total">${money(total)}</div><small>potencial estimado</small><div class="money-left-list"><span>Volume <b>${money(volumeGap)}</b></span><span>Ticket <b>${money(ticketGap)}</b></span><span>Cancelamento <b>${money(cancelGap)}</b></span></div>`;
+  if($('profile360-comparison'))$('profile360-comparison').innerHTML=`<h4>Comparação com a equipe</h4><p>Receita: ${Number(latest.revenue||0)>=avgRev?'acima':'abaixo'} da média de ${money(avgRev)}.</p><p>Ticket: ${Number(latest.ticket||0)>=avgTicket?'acima':'abaixo'} da média de ${money(avgTicket)}.</p>`;
+}
+
 window.openSeller360=async(id)=>{
   openView('profile360');
   const dna=window.MonsterEngine?.dnaForSeller(id);
@@ -645,7 +714,9 @@ window.openSeller360=async(id)=>{
     <div><small>Ticket</small><strong>${money(latest.ticket)}</strong></div>
     <div><small>Ativo</small><strong>${money(latest.active)}</strong></div>
     <div><small>Cancelamento</small><strong>${pct(latest.cancellation)}</strong></div>
-    <div><small>Participação</small><strong>${pct(dna?.participation)}</strong></div>`;
+    <div><small>Representa na receita</small><strong>${pct(dna?.participation)}</strong></div>`;
+  renderSellerRadar(latest,dna);
+  renderSellerMoneyLeft(latest,dna);
   const mission = Number(latest.cancellation||0)>0.15
     ? 'Auditar três vendas e aplicar feedback de confirmação.'
     : Number(latest.revenue||0)<((dashboardPayload?.summary?.revenue||0)/(dashboardPayload?.summary?.seller_count||1))*0.65

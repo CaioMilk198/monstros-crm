@@ -2,6 +2,15 @@
 window.MonsterEngine = {
   payload: null,
 
+  enrichedDna(s){
+    if(!s) return s;
+    const strengths=[...(s.strengths||[])].filter(Boolean);
+    const attention=[...(s.attention||[])].filter(Boolean);
+    if(!strengths.length && !attention.length) strengths.push('Consistente');
+    else if(!strengths.length && attention.length) strengths.push('Em evolução');
+    return {...s,strengths,attention};
+  },
+
   async load(client) {
     const today = new Date().toISOString().slice(0,10);
     const {data,error} = await client.rpc('get_monster_engine_payload_v30',{p_date:today});
@@ -75,18 +84,18 @@ window.MonsterEngine = {
       <p>Ritmo necessário: <strong>${this.money(proj.required_daily_rate)}/dia</strong></p>
       <p>Projeção final: <strong>${this.money(proj.projected_revenue)}</strong></p>`;
 
-    document.getElementById('dna-grid').innerHTML=(p.seller_dna||[]).map(s=>`
+    document.getElementById('dna-grid').innerHTML=(p.seller_dna||[]).map(raw=>{ const s=this.enrichedDna(raw); return `
       <button class="dna-card" onclick="openSeller360('${s.seller_id}')">
-        <div><strong>${s.seller_name}</strong><small>${this.pct(s.participation)} da equipe</small></div>
+        <div><strong>${s.seller_name}</strong><small>Representa ${this.pct(s.participation)} da receita</small></div>
         <div class="dna-tags">
           ${(s.strengths||[]).filter(Boolean).slice(0,4).map(x=>`<span class="dna-strength">${x}</span>`).join('')}
           ${(s.attention||[]).filter(Boolean).slice(0,2).map(x=>`<span class="dna-attention">${x}</span>`).join('')}
         </div>
-      </button>`).join('');
+      </button>`; }).join('');
   },
 
   dnaForSeller(id) {
-    return (this.payload?.seller_dna||[]).find(x=>x.seller_id===id);
+    return this.enrichedDna((this.payload?.seller_dna||[]).find(x=>x.seller_id===id));
   }
 };
-console.info('MONSTROS CRM v0.8 - Monster Engine Mission Control');
+console.info('MONSTEROS v1.0 - Intelligence Pilot');

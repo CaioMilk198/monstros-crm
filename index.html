@@ -271,10 +271,15 @@
           <div class="panel">
             <h3>Indicadores atuais</h3>
             <div id="profile360-kpis" class="profile-kpis"></div>
+<div class="profile-analysis-grid">
+  <div><h4>Radar comercial</h4><div id="profile360-radar" class="seller-radar"></div></div>
+  <div><h4>Dinheiro deixado na mesa</h4><div id="profile360-money"></div></div>
+</div>
           </div>
           <div class="panel">
             <h3>Missão recomendada</h3>
             <div id="profile360-mission">Selecione um vendedor.</div>
+<div id="profile360-comparison" class="profile-comparison"></div>
           </div>
           <div class="panel span-2">
             <h3>Histórico</h3>
@@ -288,14 +293,27 @@
         <div class="director-grid">
           <article class="panel"><h3>O que aconteceu?</h3><div id="director-happened"></div></article>
           <article class="panel"><h3>Por que aconteceu?</h3><div id="director-why"></div></article>
-          <article class="panel"><h3>Quanto isso custa?</h3><div id="director-cost"></div></article>
+          <article class="panel"><h3>Quanto isso custa?</h3><div id="director-cost"></div><div id="director-cost-bars" class="cost-bars"></div></article>
         </div>
-        <article class="panel"><h3>O que fazer agora?</h3><div id="director-priorities"></div></article>
+        <article class="panel"><h3>O que esperar?</h3><div id="director-expected" class="expected-grid"></div></article>
+<article class="panel"><h3>O que fazer agora?</h3><div id="director-priorities"></div></article>
       </section>
 
       <section id="view-analytics" class="view hidden">
         <div id="analytics-summary" class="analytics-summary"></div>
-        <article class="panel"><h3>Linha do tempo</h3><div id="analytics-timeline"></div></article>
+        <div class="analytics-charts">
+  <article class="panel"><h3>Receita</h3><div id="chart-revenue" class="mini-chart"></div></article>
+  <article class="panel"><h3>Índice Monstro</h3><div id="chart-index" class="mini-chart"></div></article>
+  <article class="panel"><h3>Ticket médio</h3><div id="chart-ticket" class="mini-chart"></div></article>
+  <article class="panel"><h3>Cancelamento</h3><div id="chart-cancel" class="mini-chart"></div></article>
+  <article class="panel"><h3>Conversão</h3><div id="chart-conversion" class="mini-chart"></div></article>
+  <article class="panel"><h3>Meta x projeção</h3><div id="chart-target" class="mini-chart"></div></article>
+</div>
+<div class="analytics-charts two">
+  <article class="panel"><h3>Top vendedores atuais</h3><div id="analytics-top"></div></article>
+  <article class="panel"><h3>Vendedores que exigem atenção</h3><div id="analytics-bottom"></div></article>
+</div>
+<article class="panel"><h3>Linha do tempo</h3><div id="analytics-timeline"></div></article>
       </section>
 
       <section id="view-monstrao" class="view hidden">
@@ -351,7 +369,7 @@
     </main>
   </div>
 
-  <script src="monster-engine.js?v=0.8.0"></script>
-  <script src="app.js?v=0.9.3"></script>
+  <script src="monster-engine.js?v=1.0.0"></script>
+  <script src="app.js?v=1.0.0"></script>
 </body>
 </html>
