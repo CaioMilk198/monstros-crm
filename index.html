@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>MonsterOS v0.9.3 — Calendário Restaurado</title>
+  <title>Monstros AI v2.0 Beta</title>
   <link rel="stylesheet" href="styles.css" />
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
@@ -11,7 +11,7 @@
 <body>
   <div id="config-screen" class="screen center">
     <div class="panel auth-panel">
-      <h1><span>MONSTROS</span> CRM</h1>
+      <h1><span>MONSTROS</span> AI</h1>
       <p>Configuração inicial do ambiente piloto.</p>
       <label>Project URL do Supabase</label>
       <input id="cfg-url" placeholder="https://seu-projeto.supabase.co" />
@@ -24,7 +24,7 @@
 
   <div id="auth-screen" class="screen center hidden">
     <div class="panel auth-panel">
-      <h1><span>MONSTROS</span> CRM</h1>
+      <h1><span>MONSTROS</span> AI</h1>
       <div class="tabs">
         <button class="tab active" data-auth-tab="login">Entrar</button>
         <button class="tab" data-auth-tab="signup">Criar primeiro acesso</button>
@@ -47,15 +47,19 @@
 
   <div id="app" class="app hidden">
     <aside>
-      <div class="brand"><span>MONSTER</span>OS</div>
+      <div class="brand"><span>MONSTROS</span> AI <small>BETA 2.0</small></div>
       <nav>
         <button class="nav active" data-view="dashboard">Centro de Comando</button>
         <button class="nav" data-view="import">Importar planilha</button>
         <button class="nav" data-view="ranking">Ranking</button>
         <button class="nav" data-view="intelligence">Inteligência</button>
         <button class="nav" data-view="profile360">Perfil 360</button>
+        <button class="nav" data-view="warroom">Sala de Guerra</button>
         <button class="nav" data-view="director">Director</button>
-        <button class="nav" data-view="analytics">Analytics</button>
+        <button class="nav" data-view="coach">Monster Coach</button>
+        <button class="nav" data-view="analytics">Analytics 2.0</button>
+        <button class="nav" data-view="timeline">Timeline Inteligente</button>
+        <button class="nav" data-view="academy">Academy</button>
         <button class="nav" data-view="monstrao">Monstrão</button>
         <button class="nav" data-view="settings">Configurações</button>
       </nav>
@@ -288,7 +292,50 @@
         </div>
       </section>
 
-<section id="view-director" class="view hidden">
+
+      <section id="view-warroom" class="view hidden">
+        <div class="warroom-hero panel">
+          <div>
+            <small>EXECUÇÃO DO DIA</small>
+            <h3>Sala de Guerra</h3>
+            <p>Somente o que precisa ser resolvido agora, ordenado por impacto.</p>
+          </div>
+          <div id="warroom-clock" class="warroom-clock"></div>
+        </div>
+        <div id="warroom-kpis" class="warroom-kpis"></div>
+        <div class="warroom-grid">
+          <article class="panel"><div class="panel-title-row"><h3>Prioridades críticas</h3><span class="live-badge">HOJE</span></div><div id="warroom-priorities"></div></article>
+          <article class="panel"><h3>Quem exige sua atenção</h3><div id="warroom-people"></div></article>
+          <article class="panel"><h3>Vitórias rápidas</h3><div id="warroom-wins"></div></article>
+        </div>
+      </section>
+
+      <section id="view-coach" class="view hidden">
+        <div class="coach-header panel">
+          <div><small>DESENVOLVIMENTO DE PESSOAS</small><h3>Monster Coach</h3><p>Diagnóstico, plano de ação, feedback e treinamento individual.</p></div>
+          <select id="coach-seller-select"><option value="">Selecione um vendedor</option></select>
+        </div>
+        <div id="coach-empty" class="panel"><h3>Selecione um vendedor</h3><p>O Coach montará um plano completo usando os indicadores disponíveis.</p></div>
+        <div id="coach-content" class="hidden">
+          <div class="coach-top-grid">
+            <article class="panel coach-identity"><div class="coach-avatar" id="coach-avatar">?</div><div><small>MONSTER COACH</small><h3 id="coach-name">—</h3><div id="coach-dna"></div></div></article>
+            <article class="panel"><small>Dinheiro deixado na mesa</small><strong class="coach-money" id="coach-money">R$ 0</strong><p id="coach-money-detail"></p></article>
+            <article class="panel"><small>Melhor referência para copiar</small><h3 id="coach-benchmark">—</h3><p id="coach-benchmark-reason"></p></article>
+          </div>
+          <div class="coach-grid">
+            <article class="panel"><h3>O que está acontecendo?</h3><div id="coach-diagnosis"></div></article>
+            <article class="panel"><h3>Causa provável</h3><div id="coach-cause"></div></article>
+            <article class="panel"><h3>Radar comercial</h3><div id="coach-radar" class="coach-radar"></div></article>
+          </div>
+          <div class="coach-grid">
+            <article class="panel"><h3>Plano de ação — 7 dias</h3><div id="coach-plan"></div></article>
+            <article class="panel"><h3>Feedback pronto</h3><textarea id="coach-feedback" rows="12"></textarea><button id="copy-coach-feedback">Copiar feedback</button></article>
+            <article class="panel"><h3>Academy recomenda</h3><div id="coach-academy"></div></article>
+          </div>
+        </div>
+      </section>
+
+      <section id="view-director" class="view hidden">
         <div id="director-radar" class="director-radar"></div>
         <div class="director-grid">
           <article class="panel"><h3>O que aconteceu?</h3><div id="director-happened"></div></article>
@@ -314,6 +361,17 @@
   <article class="panel"><h3>Vendedores que exigem atenção</h3><div id="analytics-bottom"></div></article>
 </div>
 <article class="panel"><h3>Linha do tempo</h3><div id="analytics-timeline"></div></article>
+      </section>
+
+      
+      <section id="view-timeline" class="view hidden">
+        <div class="panel timeline-hero"><small>MEMÓRIA OPERACIONAL</small><h3>Timeline Inteligente</h3><p>Importações, mudanças de risco, missões e evolução da equipe em uma única linha do tempo.</p></div>
+        <div id="smart-timeline" class="smart-timeline"></div>
+      </section>
+
+      <section id="view-academy" class="view hidden">
+        <div class="panel academy-hero"><small>MICROTREINAMENTOS ADAPTATIVOS</small><h3>Monstros Academy</h3><p>O conteúdo muda conforme o diagnóstico de cada vendedor.</p></div>
+        <div id="academy-grid" class="academy-grid"></div>
       </section>
 
       <section id="view-monstrao" class="view hidden">
@@ -369,7 +427,7 @@
     </main>
   </div>
 
-  <script src="monster-engine.js?v=1.0.0"></script>
-  <script src="app.js?v=1.0.0"></script>
+  <script src="monster-engine.js?v=2.0.0-beta"></script>
+  <script src="app.js?v=2.0.0-beta"></script>
 </body>
 </html>

@@ -1,5 +1,5 @@
 console.info('MONSTEROS v1.0 - Intelligence Pilot');
-window.MONSTROS_CRM_VERSION='1.0.0';
+window.MONSTROS_CRM_VERSION='2.0.0-beta';
 let client = null;
 let profile = null;
 let preview = null;
@@ -149,6 +149,15 @@ async function loadDashboard(){
   await loadManualMissions();
   await loadDirectorPilot();
   await loadAnalyticsPilot();
+  renderWarRoom();
+  if($('monstrao-summary') && dashboardPayload?.date){
+    const opportunity=dashboardPayload?.engine?.money?.total_opportunity||0;
+    const risk=rankingRows().filter(r=>sellerAttention(r).some(x=>/baixo|cancelamento|risco/i.test(x))).sort((a,b)=>coachMetrics(b).total-coachMetrics(a).total)[0];
+    $('monstrao-summary').innerHTML=`<b>Bom dia, Caio.</b><br>Hoje existem ${money(opportunity)} em potencial de recuperação.${risk?` Minha primeira prioridade seria ${risk.seller_name}.`:''}`;
+  }
+  renderSmartTimeline();
+  renderAcademy();
+  populateCoachSellerSelect();
   if(window.MonsterEngine){
     const engineData=await window.MonsterEngine.load(client);
     window.MonsterEngine.renderDashboard();
@@ -282,6 +291,15 @@ window.changeManualMissionStatus=async(id,status)=>{
     await loadManualMissions();
   await loadDirectorPilot();
   await loadAnalyticsPilot();
+  renderWarRoom();
+  if($('monstrao-summary') && dashboardPayload?.date){
+    const opportunity=dashboardPayload?.engine?.money?.total_opportunity||0;
+    const risk=rankingRows().filter(r=>sellerAttention(r).some(x=>/baixo|cancelamento|risco/i.test(x))).sort((a,b)=>coachMetrics(b).total-coachMetrics(a).total)[0];
+    $('monstrao-summary').innerHTML=`<b>Bom dia, Caio.</b><br>Hoje existem ${money(opportunity)} em potencial de recuperação.${risk?` Minha primeira prioridade seria ${risk.seller_name}.`:''}`;
+  }
+  renderSmartTimeline();
+  renderAcademy();
+  populateCoachSellerSelect();
     await loadDashboard();
   }
 };
@@ -324,6 +342,15 @@ $('save-mission-button').onclick=async()=>{
   await loadManualMissions();
   await loadDirectorPilot();
   await loadAnalyticsPilot();
+  renderWarRoom();
+  if($('monstrao-summary') && dashboardPayload?.date){
+    const opportunity=dashboardPayload?.engine?.money?.total_opportunity||0;
+    const risk=rankingRows().filter(r=>sellerAttention(r).some(x=>/baixo|cancelamento|risco/i.test(x))).sort((a,b)=>coachMetrics(b).total-coachMetrics(a).total)[0];
+    $('monstrao-summary').innerHTML=`<b>Bom dia, Caio.</b><br>Hoje existem ${money(opportunity)} em potencial de recuperação.${risk?` Minha primeira prioridade seria ${risk.seller_name}.`:''}`;
+  }
+  renderSmartTimeline();
+  renderAcademy();
+  populateCoachSellerSelect();
 };
 
 
@@ -403,6 +430,141 @@ const rankingMonsterTab=$('ranking-monster-tab');
 if(rankingCommercialTab) rankingCommercialTab.onclick=()=>{rankingMode='commercial';localStorage.setItem('monsteros_ranking_mode',rankingMode);rankingCommercialTab.classList.add('active');rankingMonsterTab?.classList.remove('active');renderRanking(dashboardPayload?.ranking||[])};
 if(rankingMonsterTab) rankingMonsterTab.onclick=()=>{rankingMode='monster';localStorage.setItem('monsteros_ranking_mode',rankingMode);rankingMonsterTab.classList.add('active');rankingCommercialTab?.classList.remove('active');renderRanking(dashboardPayload?.ranking||[])};
 if(rankingMode==='monster'){ rankingMonsterTab?.classList.add('active'); rankingCommercialTab?.classList.remove('active'); } else { rankingCommercialTab?.classList.add('active'); rankingMonsterTab?.classList.remove('active'); }
+
+
+function sellerDNA(){
+  return dashboardPayload?.seller_dna || dashboardPayload?.engine?.seller_dna || [];
+}
+function rankingRows(){
+  return dashboardPayload?.ranking || [];
+}
+function sellerAttention(row){
+  const dna=sellerDNA().find(x=>x.seller_id===row.seller_id)||{};
+  return [...(dna.attention||[]),...(dna.strengths||[])];
+}
+function initials(name=''){
+  return name.split(/\s+/).filter(Boolean).slice(0,2).map(x=>x[0]).join('').toUpperCase();
+}
+function renderWarRoom(){
+  if(!$('warroom-kpis')) return;
+  const p=dashboardPayload;
+  if(!p?.date){$('warroom-kpis').innerHTML='<div class="panel">Importe dados para ativar a Sala de Guerra.</div>';return;}
+  const eng=p.engine||{}, h=eng.health||{}, m=eng.money||{}, proj=eng.projection||{};
+  const missions=[...(p.missions||[])];
+  const sellers=rankingRows();
+  const risks=sellers.filter(r=>sellerAttention(r).some(x=>/baixo|cancelamento|risco|evolução/i.test(x)));
+  const wins=sellers.filter(r=>sellerAttention(r).some(x=>/elite|fechador|premium|destaque|especialista/i.test(x))).slice(0,4);
+  $('warroom-clock').textContent=new Date().toLocaleString('pt-BR',{weekday:'long',hour:'2-digit',minute:'2-digit'});
+  const cards=[
+    ['💰','Oportunidade',money(m.total_opportunity||0)],
+    ['🚨','Missões críticas',String(missions.length||risks.length)],
+    ['👥','Vendedores em atenção',String(risks.length)],
+    ['📈','Projeção',money(proj.projected_revenue||0)],
+    ['🎯','Chance de meta',Number(proj.target||0)>0?pct(Math.min(1.25,Number(proj.projected_revenue||0)/Number(proj.target))):'—']
+  ];
+  $('warroom-kpis').innerHTML=cards.map(c=>`<div class="warroom-kpi panel"><span>${c[0]}</span><small>${c[1]}</small><strong>${c[2]}</strong></div>`).join('');
+  $('warroom-priorities').innerHTML=(missions.length?missions.slice(0,6):risks.slice(0,6).map((r,i)=>({title:`Recuperar ${r.seller_name}`,reason:'Indicadores abaixo do potencial da equipe.',action:'Definir meta curta, revisar carteira e acompanhar o próximo bloco.',impact:r.money_left_on_table||0}))).map((x,i)=>`<div class="war-task"><b>${i+1}</b><div><h4>${x.title}</h4><p>${x.reason||x.action||''}</p><strong>${money(x.impact||0)} de impacto</strong></div></div>`).join('')||'<p>Sem missões críticas.</p>';
+  $('warroom-people').innerHTML=risks.slice(0,8).map(r=>`<button class="war-person" onclick="openCoach('${r.seller_id}')"><span>${r.seller_name}</span><small>${sellerAttention(r).filter(x=>/baixo|cancelamento|risco|evolução/i.test(x)).join(' • ')||'Acompanhar'}</small></button>`).join('')||'<p>Nenhum vendedor em risco.</p>';
+  $('warroom-wins').innerHTML=wins.map(r=>`<button class="war-person success" onclick="openSeller360('${r.seller_id}')"><span>${r.seller_name}</span><small>${sellerAttention(r).filter(x=>/elite|fechador|premium|destaque|especialista/i.test(x)).slice(0,2).join(' • ')}</small></button>`).join('')||'<p>Os destaques aparecerão aqui.</p>';
+}
+function populateCoachSellerSelect(){
+  const el=$('coach-seller-select'); if(!el)return;
+  const current=el.value;
+  el.innerHTML='<option value="">Selecione um vendedor</option>'+rankingRows().map(r=>`<option value="${r.seller_id}">${r.seller_name}</option>`).join('');
+  if(current)el.value=current;
+}
+function openCoach(id){
+  openView('coach'); const el=$('coach-seller-select'); if(el){el.value=id;renderCoach(id);}
+}
+window.openCoach=openCoach;
+function coachMetrics(row){
+  const all=rankingRows(), avg=k=>all.length?all.reduce((s,x)=>s+Number(x[k]||0),0)/all.length:0;
+  const targetTicket=Number(dashboardPayload?.target_ticket||dashboardPayload?.engine?.settings?.target_ticket||1200);
+  const avgRevenue=avg('revenue'),avgActive=avg('active_revenue'),avgCancel=avg('cancellation_rate');
+  const revenueGap=Math.max(0,avgRevenue-Number(row.revenue||0));
+  const ticketGap=Math.max(0,targetTicket-Number(row.average_ticket||0))*Number(row.orders||0);
+  const cancelLoss=Math.max(0,Number(row.cancellation_rate||0)-avgCancel)*Number(row.revenue||0);
+  return {avgRevenue,avgActive,avgCancel,targetTicket,revenueGap,ticketGap,cancelLoss,total:revenueGap+ticketGap+cancelLoss};
+}
+function renderCoach(id){
+  const row=rankingRows().find(r=>r.seller_id===id);
+  if(!row){$('coach-empty')?.classList.remove('hidden');$('coach-content')?.classList.add('hidden');return;}
+  $('coach-empty')?.classList.add('hidden');$('coach-content')?.classList.remove('hidden');
+  const dna=sellerDNA().find(x=>x.seller_id===id)||{};
+  const tags=[...(dna.strengths||[]),...(dna.attention||[])];
+  const cm=coachMetrics(row);
+  const benchmark=[...rankingRows()].filter(x=>x.seller_id!==id).sort((a,b)=>{
+    const da=Math.abs(Number(a.average_ticket||0)-Number(row.average_ticket||0))+Math.abs(Number(a.active_revenue||0)-Number(row.active_revenue||0))/10;
+    const db=Math.abs(Number(b.average_ticket||0)-Number(row.average_ticket||0))+Math.abs(Number(b.active_revenue||0)-Number(row.active_revenue||0))/10;
+    return da-db;
+  })[0]||rankingRows()[0];
+  $('coach-avatar').textContent=initials(row.seller_name);
+  $('coach-name').textContent=row.seller_name;
+  $('coach-dna').innerHTML=tags.map(t=>`<span class="dna-chip ${/baixo|cancelamento|risco/i.test(t)?'negative':''}">${t}</span>`).join('')||'<span class="dna-chip">Consistente</span>';
+  $('coach-money').textContent=money(cm.total);
+  $('coach-money-detail').textContent=`Volume ${money(cm.revenueGap)} • Ticket ${money(cm.ticketGap)} • Cancelamento ${money(cm.cancelLoss)}`;
+  $('coach-benchmark').textContent=benchmark?.seller_name||'—';
+  $('coach-benchmark-reason').textContent='Referência com perfil próximo e desempenho superior em pelo menos um indicador.';
+  const diagnoses=[];
+  if(Number(row.revenue||0)<cm.avgRevenue*.7) diagnoses.push(`Faturamento está ${pct(1-Number(row.revenue||0)/Math.max(1,cm.avgRevenue))} abaixo da média da equipe.`);
+  if(Number(row.average_ticket||0)<cm.targetTicket) diagnoses.push(`Ticket está ${money(cm.targetTicket-Number(row.average_ticket||0))} abaixo da meta.`);
+  if(Number(row.cancellation_rate||0)>cm.avgCancel*1.25) diagnoses.push(`Cancelamento está acima da média da equipe.`);
+  if(Number(row.active_revenue||0)<cm.avgActive*.7) diagnoses.push('Produção ativa abaixo do potencial.');
+  if(!diagnoses.length) diagnoses.push('Desempenho consistente, com espaço para evolução incremental.');
+  $('coach-diagnosis').innerHTML='<ul>'+diagnoses.map(x=>`<li>${x}</li>`).join('')+'</ul>';
+  const cause=diagnoses.some(x=>/Ticket/i.test(x))?'Oferta curta ou pouco aprofundamento de necessidade.':diagnoses.some(x=>/Cancelamento/i.test(x))?'Confirmação de pedido e criação de compromisso precisam de reforço.':diagnoses.some(x=>/ativa|Faturamento/i.test(x))?'Baixa intensidade de carteira e pouco acompanhamento do próximo bloco de vendas.':'O vendedor está estável; o próximo salto depende de consistência e replicação das melhores práticas.';
+  $('coach-cause').innerHTML=`<p>${cause}</p><div class="coach-evidence"><b>Evidências atuais</b><span>${row.orders||0} pedidos</span><span>${money(row.average_ticket||0)} ticket</span><span>${pct(row.cancellation_rate||0)} cancelamento</span></div>`;
+  const radar=[
+    ['Receita',Math.min(100,Number(row.revenue||0)/Math.max(1,cm.avgRevenue)*70)],
+    ['Ticket',Math.min(100,Number(row.average_ticket||0)/Math.max(1,cm.targetTicket)*80)],
+    ['Ativo',Math.min(100,Number(row.active_revenue||0)/Math.max(1,cm.avgActive)*70)],
+    ['Qualidade',Math.max(0,100-Number(row.cancellation_rate||0)*300)],
+    ['Índice',Number(row.score||0)]
+  ];
+  $('coach-radar').innerHTML=radar.map(x=>`<div><span>${x[0]}</span><div><i style="width:${Math.max(3,Math.min(100,x[1]))}%"></i></div><b>${Math.round(x[1])}</b></div>`).join('');
+  const plan=[
+    ['Hoje','Revisar carteira e definir uma meta curta para o próximo bloco.'],
+    ['Amanhã','Ouvir duas ligações e treinar a objeção principal.'],
+    ['Em 3 dias','Comparar ticket, ativo e confirmação de pedido.'],
+    ['Em 7 dias','Recalcular potencial e reconhecer evolução.']
+  ];
+  $('coach-plan').innerHTML=plan.map((x,i)=>`<div class="coach-step"><b>${i+1}</b><div><small>${x[0]}</small><p>${x[1]}</p></div></div>`).join('');
+  const feedback=`${row.seller_name}, quero reconhecer seus pontos fortes e trabalhar uma oportunidade objetiva. Hoje seus indicadores mostram ${diagnoses.join(' ')} Nosso foco não é cobrança genérica: é recuperar aproximadamente ${money(cm.total)} de potencial. Para isso, vamos revisar sua carteira, acompanhar o próximo bloco de vendas e comparar sua evolução em 7 dias.`;
+  $('coach-feedback').value=feedback;
+  const academy=[];
+  if(diagnoses.some(x=>/Ticket/i.test(x))) academy.push(['Oferta de valor em 3 minutos','Treine perguntas de necessidade e montagem de pacote.']);
+  if(diagnoses.some(x=>/Cancelamento/i.test(x))) academy.push(['Confirmação que reduz cancelamento','Use resumo, compromisso e confirmação final.']);
+  if(diagnoses.some(x=>/ativa|Faturamento/i.test(x))) academy.push(['Bloco de produtividade','Planeje 30 contatos com checkpoints de 10 em 10.']);
+  if(!academy.length) academy.push(['Consistência de alta performance','Transforme boas práticas em rotina repetível.']);
+  $('coach-academy').innerHTML=academy.map((x,i)=>`<div class="academy-rec"><span>${i+1}</span><div><h4>${x[0]}</h4><p>${x[1]}</p><button onclick="alert('Microtreinamento piloto aberto. O conteúdo multimídia entra na próxima etapa.')">Iniciar treino</button></div></div>`).join('');
+}
+if($('coach-seller-select')) $('coach-seller-select').onchange=e=>renderCoach(e.target.value);
+if($('copy-coach-feedback')) $('copy-coach-feedback').onclick=async()=>{await navigator.clipboard.writeText($('coach-feedback').value);$('copy-coach-feedback').textContent='Copiado!';setTimeout(()=>$('copy-coach-feedback').textContent='Copiar feedback',1500);};
+
+function renderSmartTimeline(){
+  const el=$('smart-timeline'); if(!el)return;
+  const events=[];
+  const date=dashboardPayload?.date;
+  if(date) events.push({time:'08:00',type:'import',title:'Dados consolidados',text:`Importação de ${new Date(date+'T12:00').toLocaleDateString('pt-BR')} processada.`});
+  const risks=rankingRows().filter(r=>sellerAttention(r).some(x=>/baixo|cancelamento|risco/i.test(x))).slice(0,5);
+  risks.forEach((r,i)=>events.push({time:`${String(8+i).padStart(2,'0')}:15`,type:'risk',title:`${r.seller_name} entrou em atenção`,text:sellerAttention(r).join(' • ')}));
+  const leader=[...rankingRows()].sort((a,b)=>Number(b.revenue||0)-Number(a.revenue||0))[0];
+  if(leader)events.push({time:'11:30',type:'win',title:'Destaque identificado',text:`${leader.seller_name} lidera com ${money(leader.revenue)}.`});
+  events.push({time:'Agora',type:'ai',title:'Monster Director recalculado',text:`Potencial estimado: ${money(dashboardPayload?.engine?.money?.total_opportunity||0)}.`});
+  el.innerHTML=events.map(e=>`<div class="smart-event ${e.type}"><div class="event-dot"></div><time>${e.time}</time><div><h4>${e.title}</h4><p>${e.text}</p></div></div>`).join('');
+}
+function renderAcademy(){
+  const el=$('academy-grid'); if(!el)return;
+  const modules=[
+    ['🎯','Conversão','Da abordagem ao fechamento','Perguntas, diagnóstico e avanço da venda.'],
+    ['🧾','Confirmação','Redução de cancelamento','Criação de compromisso e resumo do pedido.'],
+    ['💎','Ticket Premium','Aumento de valor por pedido','Pacotes, ancoragem e oferta complementar.'],
+    ['📞','Ativo','Produtividade de carteira','Blocos de contato e cadência de retorno.'],
+    ['🛡️','Objeções','Quebra de objeções','Preço, desconfiança, prazo e comparação.'],
+    ['🏆','Alta performance','Rotina de elite','Como repetir as práticas dos melhores vendedores.']
+  ];
+  el.innerHTML=modules.map((m,i)=>`<article class="panel academy-module"><span>${m[0]}</span><small>${m[1]}</small><h3>${m[2]}</h3><p>${m[3]}</p><button onclick="alert('Módulo piloto. Na próxima etapa entra vídeo, script, exercício e avaliação.')">Abrir módulo</button></article>`).join('');
+}
 
 $('claim-admin-button').onclick=async()=>{
   setMessage('settings-message','Ativando...');

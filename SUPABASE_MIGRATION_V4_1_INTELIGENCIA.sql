@@ -25,7 +25,9 @@ begin
 end;$$;
 grant execute on function public.capture_operation_snapshot(date) to authenticated;
 
-create or replace function public.get_operation_timeline(p_limit integer default 30)
+drop function if exists public.get_operation_timeline(integer);
+
+create function public.get_operation_timeline(p_limit integer default 30)
 returns table(indicator_date date,revenue numeric,target numeric,projection numeric,monster_index numeric,opportunity_total numeric,revenue_change numeric,index_change numeric,orders integer,average_ticket numeric,cancellation_rate numeric,active_revenue numeric,conversion_rate numeric)
 language sql security definer set search_path=public as $$
 with r as(select s.*,lag(revenue)over(order by indicator_date)prev_revenue,lag(monster_index)over(order by indicator_date)prev_index from public.operation_snapshots s where company_id=(select company_id from public.current_profile()))
