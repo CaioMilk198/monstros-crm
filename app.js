@@ -1,5 +1,5 @@
-console.info('MONSTROS CRM v0.7.1 - Intelligence Fix');
-window.MONSTROS_CRM_VERSION='0.7.1';
+console.info('MONSTROS CRM v0.7.3 - Ranking e Intelligence');
+window.MONSTROS_CRM_VERSION='0.7.3';
 let client = null;
 let profile = null;
 let preview = null;
@@ -136,8 +136,9 @@ async function loadDashboard(){
   $('kpi-attainment').textContent=s.target>0?`${(Number(s.attainment||0)*100).toFixed(1)}% da meta`:'Meta não definida';
   $('kpi-gap').textContent=`Gap: ${money(s.gap||0)}`;
   $('kpi-projected-attainment').textContent=s.target>0?`${(Number(s.projected_attainment||0)*100).toFixed(1)}% projetado`:'Cadastre a meta';
-  renderRanking(data.ranking||[]);
-  $('top-list').innerHTML=(data.ranking||[]).slice(0,5).map((r,i)=>`<div class="seller-row"><span>${i+1}. ${r.seller_name}<small>Score ${Number(r.score||0).toFixed(0)}</small></span><strong>${money(r.revenue)}</strong></div>`).join('');
+  const revenueRanking=[...(data.ranking||[])].sort((a,b)=>Number(b.revenue||0)-Number(a.revenue||0));
+  renderRanking(revenueRanking);
+  $('top-list').innerHTML=revenueRanking.slice(0,5).map((r,i)=>`<div class="seller-row"><span>${i+1}. ${r.seller_name}<small>Score ${Number(r.score||0).toFixed(0)}</small></span><strong>${money(r.revenue)}</strong></div>`).join('');
   $('mission-list').innerHTML=(data.mission||[]).length?(data.mission||[]).map(m=>`<div class="mission ${m.priority}"><strong>${m.sequence}. ${m.title}</strong><small>${m.reason}</small><div>${m.action_text}</div><button onclick="completeMission('${m.id}')">Concluir</button></div>`).join(''):'<p>Nenhuma prioridade gerada para hoje.</p>';
   $('insight-grid').innerHTML=(data.insights||[]).map(x=>`<div class="insight-card"><strong>${x.title}</strong><p>${x.text}</p></div>`).join('');
   $('monstrao-summary').textContent=buildExecutiveSummary(data);
@@ -148,10 +149,29 @@ async function loadDashboard(){
     if(engineData?.projection){
       const ep=engineData.projection;
       $('kpi-projection').textContent=money(ep.projected_revenue);
-      $('kpi-projection-sub').textContent=`${pct(ep.projected_attainment)} projetado por dias úteis`;
+      $('kpi-projected-attainment').textContent=`${pct(ep.projected_attainment)} projetado por dias úteis`;
       const projectionCard=$('kpi-projection')?.closest('.kpi');
       if(projectionCard) projectionCard.title=
         `Média diária: ${money(ep.daily_rate)} | Ritmo necessário: ${money(ep.required_daily_rate)}`;
+
+      const projectionAbove=Number(ep.projected_revenue||0)>=Number(ep.target||0);
+      const health=engineData.health||{};
+      const moneyData=engineData.money||{};
+      $('insight-grid').innerHTML=`
+        <div class="insight-card">
+          <strong>${projectionAbove?'Projeção acima da meta':'Projeção abaixo da meta'}</strong>
+          <p>${projectionAbove
+            ? `O ritmo atual projeta ${money(ep.projected_revenue)}, acima da meta.`
+            : `Faltam aproximadamente ${money(Number(ep.target||0)-Number(ep.projected_revenue||0))} na projeção. O ritmo necessário é ${money(ep.required_daily_rate)}/dia.`}</p>
+        </div>
+        <div class="insight-card">
+          <strong>Saúde da operação: ${health.status||'—'}</strong>
+          <p>${health.low_volume_count||0} vendedor(es) com baixo volume e ${health.cancellation_risk_count||0} com risco de cancelamento.</p>
+        </div>
+        <div class="insight-card">
+          <strong>Potencial financeiro</strong>
+          <p>${money(moneyData.total_opportunity)} em cenários de ticket, cancelamento e recuperação de baixo volume.</p>
+        </div>`;
     }
     if(engineData?.seller_dna?.length){
       const rankMap=new Map(engineData.seller_dna.map(s=>[s.seller_id,s]));
@@ -159,7 +179,7 @@ async function loadDashboard(){
         ...r,
         score:rankMap.get(r.seller_id)?.score ?? r.score
       }));
-      renderRanking(updated);
+      renderRanking(updated.sort((a,b)=>Number(b.revenue||0)-Number(a.revenue||0)));
     }
   }
 }
@@ -172,10 +192,27 @@ function sellerDiagnosis(r,team){
   return ['Acompanhar','warn'];
 }
 function renderRanking(rows){
-  $('ranking-body').innerHTML=rows.map((r,i)=>{
-    const d=sellerDiagnosis(r,rows);
+  const ordered=[...(rows||[])].sort((a,b)=>Number(b.revenue||0)-Number(a.revenue||0));
+  $('ranking-body').innerHTML=ordered.map((r,i)=>{
+    const dna=window.MonsterEngine?.dnaForSeller(r.seller_id);
+    const fallback=sellerDiagnosis(r,ordered);
+    const tags=[
+      ...(dna?.strengths||[]).filter(Boolean).slice(0,2).map(x=>[x,'good']),
+      ...(dna?.attention||[]).filter(Boolean).slice(0,2).map(x=>[x,'risk'])
+    ];
+    if(!tags.length) tags.push(fallback);
     const medal=i===0?'🥇':i===1?'🥈':i===2?'🥉':`${i+1}`;
-    return `<tr><td>${medal}</td><td><button class="seller-link" onclick="openSeller360('${r.seller_id}')">${r.seller_name}</button></td><td><span class="score-badge">${Number(r.score||0).toFixed(0)}</span></td><td>${money(r.revenue)}</td><td>${r.orders||0}</td><td>${money(r.average_ticket)}</td><td>${money(r.active_revenue)}</td><td>${pct(r.cancellation_rate)}</td><td><span class="diagnosis ${d[1]}">${d[0]}</span></td></tr>`;
+    return `<tr>
+      <td>${medal}</td>
+      <td><button class="seller-link" onclick="openSeller360('${r.seller_id}')">${r.seller_name}</button></td>
+      <td><span class="score-badge">${Number(r.score||0).toFixed(0)}</span></td>
+      <td>${money(r.revenue)}</td>
+      <td>${r.orders||0}</td>
+      <td>${money(r.average_ticket)}</td>
+      <td>${money(r.active_revenue)}</td>
+      <td>${pct(r.cancellation_rate)}</td>
+      <td><div class="diagnosis-tags">${tags.map(t=>`<span class="diagnosis ${t[1]}">${t[0]}</span>`).join('')}</div></td>
+    </tr>`;
   }).join('');
 }
 window.completeMission=async(id)=>{

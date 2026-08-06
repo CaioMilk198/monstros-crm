@@ -66,3 +66,6 @@ button:disabled{opacity:.55;cursor:not-allowed}
 .calendar-settings{margin-top:14px}
 @media(max-width:1050px){.monster-strip{grid-template-columns:repeat(2,1fr)}.dna-grid{grid-template-columns:repeat(2,1fr)}}
 @media(max-width:700px){.monster-strip,.engine-grid,.profile-grid{grid-template-columns:1fr}.dna-grid{grid-template-columns:1fr}.profile-kpis{grid-template-columns:repeat(2,1fr)}}
+
+.diagnosis-tags{display:flex;flex-wrap:wrap;gap:5px;min-width:180px}
+.diagnosis-tags .diagnosis{white-space:nowrap}

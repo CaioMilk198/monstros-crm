@@ -4,7 +4,7 @@ window.MonsterEngine = {
 
   async load(client) {
     const today = new Date().toISOString().slice(0,10);
-    const {data,error} = await client.rpc('get_monster_engine_payload',{p_date:today});
+    const {data,error} = await client.rpc('get_monster_engine_payload_v23',{p_date:today});
     if(error) {
       console.error('Monster Engine:',error);
       const message=error.details||error.hint||error.message||'Falha no motor de inteligência';
@@ -55,9 +55,9 @@ window.MonsterEngine = {
       </div>`).join('');
 
     const opportunities=[
-      ['Aumentar ticket',m.ticket_opportunity,'Elevar o ticket até a meta configurada.'],
-      ['Reduzir cancelamentos',m.cancellation_loss,'Recuperar perda acima do limite.'],
-      ['Fortalecer ativo',m.active_opportunity,'Aproximar ativo de 30% da receita.']
+      ['Aumentar ticket',m.ticket_opportunity,'Simulação mínima de +R$ 100 por pedido.'],
+      ['Reduzir cancelamentos',m.cancellation_loss,'Simulação mínima de redução de 1 ponto percentual.'],
+      ['Reativar baixo volume',m.active_opportunity,'Levar vendedores abaixo do ritmo até 80% da média da equipe.']
     ].sort((a,b)=>Number(b[1])-Number(a[1]));
     document.getElementById('opportunity-list').innerHTML=opportunities.map((o,i)=>`
       <div class="opportunity-row">
@@ -89,4 +89,4 @@ window.MonsterEngine = {
     return (this.payload?.seller_dna||[]).find(x=>x.seller_id===id);
   }
 };
-console.info('MONSTROS CRM v0.7 - Monster Engine carregado');
+console.info('MONSTROS CRM v0.7.3 - Monster Engine Intelligence');
