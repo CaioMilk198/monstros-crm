@@ -1,5 +1,5 @@
 console.info('MONSTROS CRM v0.8 - Mission Control');
-window.MONSTROS_CRM_VERSION='0.9.0';
+window.MONSTROS_CRM_VERSION='0.9.1';
 let client = null;
 let profile = null;
 let preview = null;
@@ -110,9 +110,12 @@ document.querySelectorAll('[data-go]').forEach(b=>b.onclick=()=>openView(b.datas
 function openView(name){
   document.querySelectorAll('.nav').forEach(x=>x.classList.toggle('active',x.dataset.view===name));
   document.querySelectorAll('.view').forEach(x=>x.classList.add('hidden'));
-  $(`view-${name}`).classList.remove('hidden');
-  const titles={dashboard:['Centro de Comando','O que precisa da sua atenção agora.'],import:['Central de Importação','Valide antes de confirmar.'],ranking:['Ranking','Índice Monstro e DNA Comercial.'],intelligence:['Inteligência Gerencial','Onde estamos, para onde vamos e onde está o dinheiro.'],profile360:['Perfil 360','Dossiê individual do vendedor.'],monstrao:['Monstrão','Copiloto gerencial baseado nos dados atuais.'],settings:['Configurações','Metas, dias úteis e permissões.']};
-  $('view-title').textContent=titles[name][0]; $('view-subtitle').textContent=titles[name][1];
+  const targetView=$(`view-${name}`);
+  if(!targetView){console.warn('View não encontrada:',name);return;}
+  targetView.classList.remove('hidden');
+  const titles={dashboard:['Centro de Comando','O que precisa da sua atenção agora.'],import:['Central de Importação','Valide antes de confirmar.'],ranking:['Ranking','Índice Monstro e DNA Comercial.'],intelligence:['Inteligência Gerencial','Onde estamos, para onde vamos e onde está o dinheiro.'],profile360:['Perfil 360','Dossiê individual do vendedor.'],director:['Monster Director','Decisões priorizadas pelo impacto financeiro.'],analytics:['Monster Analytics','Histórico e evolução da operação.'],monstrao:['Monstrão','Copiloto gerencial baseado nos dados atuais.'],settings:['Configurações','Metas, dias úteis e permissões.']};
+  const title=titles[name]||[name,''];
+  $('view-title').textContent=title[0]; $('view-subtitle').textContent=title[1];
   if(name==='import') loadImportHistory();
 }
 $('refresh-button').onclick=async()=>{await loadProfile();await loadDashboard();};
@@ -353,8 +356,10 @@ async function loadAnalyticsPilot(){
   $('analytics-summary').innerHTML=`<div class="analytics-card"><small>Índice</small><strong>${Number(x.monster_index||0).toFixed(0)}</strong></div><div class="analytics-card"><small>Receita</small><strong>${money(x.revenue)}</strong></div><div class="analytics-card"><small>Projeção</small><strong>${money(x.projection)}</strong></div><div class="analytics-card"><small>Oportunidade</small><strong>${money(x.opportunity_total)}</strong></div>`;
   $('analytics-timeline').innerHTML=rows.map(r=>`<div class="timeline-item"><b>${new Date(r.indicator_date+'T12:00').toLocaleDateString('pt-BR')}</b><span>Índice ${Number(r.monster_index||0).toFixed(0)}</span><span>${money(r.revenue)}</span><small>${r.revenue_change==null?'Primeiro registro':`Variação ${pct(r.revenue_change)}`}</small></div>`).join('');
 }
-$('ranking-commercial-tab').onclick=()=>{rankingMode='commercial';renderRanking(dashboardPayload?.ranking||[])};
-$('ranking-monster-tab').onclick=()=>{rankingMode='monster';renderRanking(dashboardPayload?.ranking||[])};
+const rankingCommercialTab=$('ranking-commercial-tab');
+const rankingMonsterTab=$('ranking-monster-tab');
+if(rankingCommercialTab) rankingCommercialTab.onclick=()=>{rankingMode='commercial';rankingCommercialTab.classList.add('active');rankingMonsterTab?.classList.remove('active');renderRanking(dashboardPayload?.ranking||[])};
+if(rankingMonsterTab) rankingMonsterTab.onclick=()=>{rankingMode='monster';rankingMonsterTab.classList.add('active');rankingCommercialTab?.classList.remove('active');renderRanking(dashboardPayload?.ranking||[])};
 
 $('claim-admin-button').onclick=async()=>{
   setMessage('settings-message','Ativando...');
