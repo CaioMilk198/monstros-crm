@@ -1,7 +1,10 @@
-# v0.9.1 — Hotfix de inicialização
+# CHANGELOG
 
-- Corrige erro `Cannot set properties of null`.
-- Adiciona corretamente os botões dos dois rankings ao HTML.
-- Integra Director e Analytics ao sistema de navegação existente.
-- Impede que um elemento opcional interrompa toda a inicialização.
-- Mantém a configuração local do Supabase acessível após F5.
+## v0.6.1 — Hotfix RPC e JavaScript
+
+### Corrigido
+- RPC antiga `confirm_dashboard_import` retornando 404.
+- Compatibilidade com `finalize_import_v3`.
+- Função `formatBRLInput` ausente.
+- Função `parseBRLInput` ausente.
+- Mensagens de erro da confirmação agora mostram detalhes.

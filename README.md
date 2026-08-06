@@ -1,14 +1,18 @@
-# Monstros CRM v0.7 — Monster Engine Beta
+# Monstros CRM v0.5
 
-Primeira camada do SaaS “Waze da Gestão Comercial”.
+Centro de Comando Inteligente para supervisores comerciais.
 
-## Capacidades
-- Dados reais e históricos.
-- Projeção por dias úteis.
-- Índice Monstro.
-- Inteligência financeira.
-- DNA Comercial.
-- Perfil 360.
-- Centro de Comando orientado a decisão.
+## Funcionalidades atuais
 
-Consulte `GUIA_ATUALIZACAO_V0.7.md`.
+- Login e perfis.
+- Importação de Excel.
+- Auditoria das abas.
+- Duplicidade por hash.
+- Histórico por protocolo.
+- Dashboard com dados reais.
+- Meta, atingimento, gap e projeção.
+- Ranking com Score Monstros.
+- Missão do Dia.
+- Monstrão Lite sem API paga.
+
+Consulte `GUIA_ATUALIZACAO_V0.5.md`.
