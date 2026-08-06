@@ -1,5 +1,5 @@
 console.info('MONSTEROS v1.0 - Intelligence Pilot');
-window.MONSTROS_CRM_VERSION='2.0.0-beta';
+window.MONSTROS_CRM_VERSION='2.1.0-piloto';
 let client = null;
 let profile = null;
 let preview = null;
@@ -546,12 +546,13 @@ function renderSmartTimeline(){
   const events=[];
   const date=dashboardPayload?.date;
   if(date) events.push({time:'08:00',type:'import',title:'Dados consolidados',text:`Importação de ${new Date(date+'T12:00').toLocaleDateString('pt-BR')} processada.`});
-  const risks=rankingRows().filter(r=>sellerAttention(r).some(x=>/baixo|cancelamento|risco/i.test(x))).slice(0,5);
-  risks.forEach((r,i)=>events.push({time:`${String(8+i).padStart(2,'0')}:15`,type:'risk',title:`${r.seller_name} entrou em atenção`,text:sellerAttention(r).join(' • ')}));
+  const risks=rankingRows().filter(r=>sellerAttention(r).some(x=>/baixo|cancelamento|risco/i.test(x))).sort((a,b)=>coachMetrics(b).total-coachMetrics(a).total).slice(0,4);
+  risks.forEach((r,i)=>events.push({time:`${String(8+i).padStart(2,'0')}:${15+i*10}`,type:'risk',seller_id:r.seller_id,title:`${r.seller_name} entrou em atenção`,text:`Oportunidade estimada: ${money(coachMetrics(r).total)} • ${sellerAttention(r).join(' • ')||'Acompanhar desempenho'}`}));
   const leader=[...rankingRows()].sort((a,b)=>Number(b.revenue||0)-Number(a.revenue||0))[0];
-  if(leader)events.push({time:'11:30',type:'win',title:'Destaque identificado',text:`${leader.seller_name} lidera com ${money(leader.revenue)}.`});
-  events.push({time:'Agora',type:'ai',title:'Monster Director recalculado',text:`Potencial estimado: ${money(dashboardPayload?.engine?.money?.total_opportunity||0)}.`});
-  el.innerHTML=events.map(e=>`<div class="smart-event ${e.type}"><div class="event-dot"></div><time>${e.time}</time><div><h4>${e.title}</h4><p>${e.text}</p></div></div>`).join('');
+  if(leader) events.push({time:'11:30',type:'win',title:'Destaque identificado',text:`${leader.seller_name} lidera com ${money(leader.revenue)}.`});
+  const potential=dashboardPayload?.engine?.money?.total_opportunity||rankingRows().reduce((s,r)=>s+coachMetrics(r).total,0);
+  events.push({time:'Agora',type:'ai',title:'Monster Director recalculado',text:`Potencial estimado: ${money(potential)}. Prioridade: ${risks[0]?.seller_name||'acompanhar evolução da equipe'}.`});
+  el.innerHTML=events.map(e=>`<div class="smart-event ${e.type}"><div class="event-dot"></div><time>${e.time}</time><div><h4>${e.title}</h4><p>${e.text}</p>${e.seller_id?`<button onclick="openCoach('${e.seller_id}')">Abrir Coach</button>`:''}</div></div>`).join('');
 }
 function renderAcademy(){
   const el=$('academy-grid'); if(!el)return;
@@ -565,6 +566,176 @@ function renderAcademy(){
   ];
   el.innerHTML=modules.map((m,i)=>`<article class="panel academy-module"><span>${m[0]}</span><small>${m[1]}</small><h3>${m[2]}</h3><p>${m[3]}</p><button onclick="alert('Módulo piloto. Na próxima etapa entra vídeo, script, exercício e avaliação.')">Abrir módulo</button></article>`).join('');
 }
+
+
+function avgMetric(key){
+  const rows=rankingRows();
+  return rows.length?rows.reduce((s,r)=>s+Number(r[key]||0),0)/rows.length:0;
+}
+function topFiveAvg(key){
+  const rows=[...rankingRows()].sort((a,b)=>Number(b[key]||0)-Number(a[key]||0)).slice(0,5);
+  return rows.length?rows.reduce((s,r)=>s+Number(r[key]||0),0)/rows.length:0;
+}
+function percentDiff(value, benchmark){
+  if(!benchmark) return 0;
+  return ((Number(value||0)-benchmark)/benchmark)*100;
+}
+function compactDiff(v){
+  const n=Math.round(v);
+  return `${n>0?'+':''}${n}%`;
+}
+function evidenceLine(label,value,benchmark,format='number'){
+  const diff=percentDiff(value,benchmark);
+  const cls=diff>=0?'positive':'negative';
+  const display=format==='money'?money(value):format==='pct'?pct(value):String(value);
+  return `<div class="evidence-line"><span>${label}</span><b>${display}</b><em class="${cls}">${compactDiff(diff)} vs equipe</em></div>`;
+}
+function renderProfile360Pilot(id){
+  const row=rankingRows().find(r=>r.seller_id===id);
+  if(!row || !$('profile360-name')) return;
+  const dna=sellerDNA().find(x=>x.seller_id===id)||{};
+  const cm=coachMetrics(row);
+  const tags=[...(dna.strengths||[]),...(dna.attention||[])];
+  const sorted=[...rankingRows()].sort((a,b)=>Number(b.revenue||0)-Number(a.revenue||0));
+  const pos=sorted.findIndex(x=>x.seller_id===id)+1;
+  const totalRevenue=rankingRows().reduce((s,x)=>s+Number(x.revenue||0),0);
+  $('profile360-avatar').textContent=initials(row.seller_name);
+  $('profile360-name').textContent=row.seller_name;
+  $('profile360-subtitle').textContent=`${pos}º de ${rankingRows().length} no faturamento • ${pct(Number(row.revenue||0)/Math.max(1,totalRevenue))} da receita da equipe`;
+  $('profile360-tags').innerHTML=(tags.length?tags:['Consistente']).map(t=>`<span class="dna-chip ${/baixo|cancelamento|risco/i.test(t)?'negative':''}">${t}</span>`).join('');
+  $('profile360-score').textContent=Math.round(Number(row.score||0));
+  $('profile360-position').textContent=`${pos}º no ranking`;
+  $('p360-revenue').textContent=money(row.revenue||0);
+  $('p360-share').textContent=`${pct(Number(row.revenue||0)/Math.max(1,totalRevenue))} da equipe`;
+  $('p360-ticket').textContent=money(row.average_ticket||0);
+  $('p360-ticket-gap').textContent=`${compactDiff(percentDiff(row.average_ticket,avgMetric('average_ticket')))} vs equipe`;
+  $('p360-active').textContent=money(row.active_revenue||0);
+  $('p360-active-gap').textContent=`${compactDiff(percentDiff(row.active_revenue,avgMetric('active_revenue')))} vs equipe`;
+  $('p360-cancel').textContent=pct(row.cancellation_rate||0);
+  $('p360-cancel-gap').textContent=`${compactDiff(percentDiff(row.cancellation_rate,avgMetric('cancellation_rate')))} vs equipe`;
+  $('p360-money').textContent=money(cm.total);
+  const positives=[], attentions=[];
+  if(Number(row.revenue||0)>=avgMetric('revenue')) positives.push('Receita acima da média da equipe'); else attentions.push('Volume abaixo da média da equipe');
+  if(Number(row.average_ticket||0)>=avgMetric('average_ticket')) positives.push('Ticket competitivo'); else attentions.push('Ticket com espaço para recuperação');
+  if(Number(row.active_revenue||0)>=avgMetric('active_revenue')) positives.push('Boa produção no ativo'); else attentions.push('Ativo abaixo do potencial');
+  if(Number(row.cancellation_rate||0)<=avgMetric('cancellation_rate')) positives.push('Qualidade controlada'); else attentions.push('Cancelamento acima da média');
+  $('p360-summary').innerHTML=`<p><b>${row.seller_name.split(' ')[0]}</b> apresenta ${positives.length?positives.join(', ').toLowerCase():'desempenho estável'}, mas ${attentions.length?attentions.join(', ').toLowerCase():'ainda pode consolidar consistência'}.</p>
+  <div class="summary-columns"><div><small>FORÇAS</small>${positives.map(x=>`<span class="summary-good">✓ ${x}</span>`).join('')||'<span>Em formação</span>'}</div><div><small>ATENÇÃO</small>${attentions.map(x=>`<span class="summary-bad">• ${x}</span>`).join('')||'<span>Sem alerta relevante</span>'}</div></div>`;
+  const radar=[
+    ['Receita',Math.min(100,Number(row.revenue||0)/Math.max(1,topFiveAvg('revenue'))*100)],
+    ['Ticket',Math.min(100,Number(row.average_ticket||0)/Math.max(1,topFiveAvg('average_ticket'))*100)],
+    ['Ativo',Math.min(100,Number(row.active_revenue||0)/Math.max(1,topFiveAvg('active_revenue'))*100)],
+    ['Qualidade',Math.max(0,100-(Number(row.cancellation_rate||0)/Math.max(.01,avgMetric('cancellation_rate')*2))*50)],
+    ['Índice',Number(row.score||0)]
+  ];
+  $('p360-radar').innerHTML=radar.map(x=>`<div><span>${x[0]}</span><div><i style="width:${Math.max(3,Math.min(100,x[1]))}%"></i></div><b>${Math.round(x[1])}</b></div>`).join('');
+  const mainGap=[['volume',cm.revenueGap],['ticket',cm.ticketGap],['cancelamento',cm.cancelLoss]].sort((a,b)=>b[1]-a[1])[0];
+  const missionText=mainGap[0]==='volume'?'Aumentar intensidade de carteira mantendo a qualidade atual.':mainGap[0]==='ticket'?'Elevar valor por pedido com oferta complementar e pacote.':'Reduzir cancelamento com confirmação estruturada do pedido.';
+  $('p360-mission').innerHTML=`<div class="mission-highlight"><small>PRIORIDADE</small><h4>${missionText}</h4><p>Impacto potencial estimado: <b>${money(mainGap[1])}</b></p><button onclick="openCoach('${id}')">Abrir plano no Coach</button></div>`;
+  $('p360-compare').innerHTML=[
+    evidenceLine('Receita',row.revenue,avgMetric('revenue'),'money'),
+    evidenceLine('Ticket',row.average_ticket,avgMetric('average_ticket'),'money'),
+    evidenceLine('Ativo',row.active_revenue,avgMetric('active_revenue'),'money'),
+    evidenceLine('Cancelamento',row.cancellation_rate,avgMetric('cancellation_rate'),'pct')
+  ].join('');
+  $('p360-money-breakdown').innerHTML=`<div class="money-stack"><div><span>Volume</span><b>${money(cm.revenueGap)}</b></div><div><span>Ticket</span><b>${money(cm.ticketGap)}</b></div><div><span>Cancelamento</span><b>${money(cm.cancelLoss)}</b></div><div class="total"><span>Total</span><b>${money(cm.total)}</b></div></div>`;
+  const nextScore=Math.min(100,Math.round(Number(row.score||0)+(cm.total>0?8:3)));
+  $('p360-next-level').innerHTML=`<p>Se executar o plano recomendado e aproximar os indicadores da referência da equipe:</p><div class="next-level-score"><span>${Math.round(Number(row.score||0))}</span><b>→</b><span>${nextScore}</span></div><p>Meta sugerida para 7 dias: <b>${mainGap[0]==='volume'?'aumentar faturamento em 10%':mainGap[0]==='ticket'?'subir ticket em 5%':'reduzir cancelamento em 2 p.p.'}</b></p>`;
+  $('p360-timeline').innerHTML=[
+    {time:'Hoje',type:'import',title:'Importação atual',text:`Receita ${money(row.revenue)} • Ticket ${money(row.average_ticket)}`},
+    {time:'Agora',type:attentions.length?'risk':'win',title:'Diagnóstico atualizado',text:attentions[0]||'Desempenho consistente'},
+    {time:'Agora',type:'ai',title:'Missão recomendada',text:missionText},
+    {time:'Em 7 dias',type:'win',title:'Próxima revisão',text:'Comparar evolução e recalcular potencial.'}
+  ].map(e=>`<div class="smart-event ${e.type}"><div class="event-dot"></div><time>${e.time}</time><div><h4>${e.title}</h4><p>${e.text}</p></div></div>`).join('');
+  $('p360-open-coach').onclick=()=>openCoach(id);
+}
+function coachToneText(row,cm,diagnoses,tone='human'){
+  const first=row.seller_name.split(' ')[0];
+  const main=diagnoses[0]||'seu desempenho está estável';
+  const opportunity=cm.total>0?`Temos cerca de ${money(cm.total)} de oportunidade para recuperar.`:'Seu resultado está consistente e o foco agora é ganhar mais regularidade.';
+  const bodies={
+    human:`${first}, seu resultado tem pontos muito bons. O principal ajuste agora é ${main.toLowerCase()}. ${opportunity} Vamos focar em uma mudança por vez e acompanhar juntos durante os próximos 7 dias.`,
+    objective:`${first}, o ponto principal é simples: ${main}. ${opportunity} Nesta semana vamos revisar carteira, acompanhar o próximo bloco e medir evolução em 7 dias.`,
+    demanding:`${first}, você tem capacidade para entregar mais. Hoje o indicador mostra que ${main.toLowerCase()}. ${opportunity} Quero foco total no plano desta semana e retorno com evolução concreta.`,
+    motivational:`${first}, você já mostrou que consegue performar. Agora precisamos transformar isso em constância. ${opportunity} Vamos trabalhar o ponto principal, medir o avanço e buscar um novo patamar nos próximos 7 dias.`
+  };
+  return bodies[tone]||bodies.human;
+}
+function updateCoachFeedback(){
+  const id=$('coach-seller-select')?.value;
+  const row=rankingRows().find(r=>r.seller_id===id); if(!row)return;
+  const cm=coachMetrics(row);
+  const diagnoses=[];
+  if(Number(row.revenue||0)<avgMetric('revenue')*.7) diagnoses.push('seu volume está abaixo da média da equipe');
+  if(Number(row.average_ticket||0)<avgMetric('average_ticket')) diagnoses.push('seu ticket tem espaço para crescer');
+  if(Number(row.cancellation_rate||0)>avgMetric('cancellation_rate')*1.2) diagnoses.push('seu cancelamento está acima da média');
+  if(!diagnoses.length) diagnoses.push('seu desempenho está consistente, mas ainda há espaço para evoluir');
+  $('coach-feedback').value=coachToneText(row,cm,diagnoses,$('coach-feedback-tone')?.value||'human');
+}
+if($('coach-feedback-tone')) $('coach-feedback-tone').onchange=updateCoachFeedback;
+if($('regenerate-coach-feedback')) $('regenerate-coach-feedback').onclick=updateCoachFeedback;
+function academyModulesFor(mode){
+  const common=[
+    ['🎯','Conversão','Da abordagem ao fechamento','Perguntas, diagnóstico e avanço da venda.','12 min'],
+    ['🧾','Confirmação','Pedido confirmado, cliente comprometido','Resumo, validação e redução de cancelamento.','8 min'],
+    ['💎','Ticket Premium','Como elevar o valor por pedido','Pacotes, ancoragem e oferta complementar.','10 min'],
+    ['📞','Ativo','Blocos de produtividade','Cadência de contatos, retorno e foco.','7 min'],
+    ['🛡️','Objeções','Preço sem desconto automático','Como sustentar valor e conduzir comparação.','6 min'],
+    ['🏆','Alta performance','Rotina dos melhores','Como repetir práticas vencedoras todos os dias.','9 min']
+  ];
+  if(mode==='tracks') return common.map((x,i)=>[x[0],`Trilha ${i+1}`,x[2],x[3],`${i+1}/4 etapas`]);
+  if(mode==='objections') return [
+    ['💰','Objeção','Está caro','Responda sem correr para desconto.','5 min'],
+    ['🤔','Objeção','Vou pensar','Crie compromisso e próximo passo.','4 min'],
+    ['👥','Objeção','Preciso falar com alguém','Mantenha a venda viva.','4 min'],
+    ['📦','Objeção','Já tenho produto','Descubra lacunas e oportunidade.','5 min'],
+    ['🕒','Objeção','Agora não','Transforme adiamento em agenda.','4 min'],
+    ['🔒','Objeção','Não confio','Construa segurança com prova e clareza.','6 min']
+  ];
+  if(mode==='challenges') return [
+    ['🔥','Desafio do dia','20 ofertas completas','Faça 20 ofertas com produto principal + complementar.','Hoje'],
+    ['🎧','Desafio','Ouvir duas ligações','Identifique uma força e um ponto de melhoria.','Hoje'],
+    ['📈','Desafio','Subir ticket em 5%','Compare o resultado do próximo bloco.','3 dias'],
+    ['✅','Desafio','Zero pedido sem confirmação','Use o checklist final em todas as vendas.','Hoje'],
+    ['🔁','Desafio','30 contatos ativos','Blocos de 10 com checkpoint.','Hoje'],
+    ['🏅','Desafio','Registrar boa prática','Compartilhe uma abordagem vencedora.','Semana']
+  ];
+  return common;
+}
+function renderAcademyMode(mode='recommended'){
+  const el=$('academy-grid'); if(!el)return;
+  const modules=academyModulesFor(mode);
+  el.innerHTML=modules.map((m,i)=>`<article class="panel academy-module"><span>${m[0]}</span><small>${m[1]}</small><h3>${m[2]}</h3><p>${m[3]}</p><div class="academy-meta"><b>${m[4]}</b><em>${'★'.repeat(Math.max(3,5-(i%3)))}</em></div><button onclick="alert('Treino piloto iniciado. Na próxima fase entram conteúdo, exercício, resposta e avaliação.')">Começar</button></article>`).join('');
+}
+document.querySelectorAll('.academy-tab').forEach(btn=>btn.onclick=()=>{
+  document.querySelectorAll('.academy-tab').forEach(x=>x.classList.remove('active'));
+  btn.classList.add('active'); renderAcademyMode(btn.dataset.academy);
+});
+if($('academy-start-today')) $('academy-start-today').onclick=()=>alert('Treino recomendado iniciado.');
+function renderAcademy(){
+  const el=$('academy-grid'); if(!el)return;
+  const risks=rankingRows().filter(r=>sellerAttention(r).some(x=>/baixo|cancelamento|risco/i.test(x)));
+  const biggest=risks.sort((a,b)=>coachMetrics(b).total-coachMetrics(a).total)[0];
+  if($('academy-today-title')) $('academy-today-title').textContent=biggest?`Treino recomendado: ${biggest.seller_name}`:'Consistência de alta performance';
+  if($('academy-today-text')) $('academy-today-text').textContent=biggest?`O sistema identificou uma oportunidade de ${money(coachMetrics(biggest).total)}. Recomendação: treino de ${coachMetrics(biggest).revenueGap>=coachMetrics(biggest).ticketGap?'produtividade e carteira':'ticket e oferta'}.`:'Transforme boas práticas em rotina repetível.';
+  if($('academy-team-progress')) $('academy-team-progress').textContent=`${Math.min(100,Math.round((dashboardPayload?.engine?.health?.monster_index||0)))}%`;
+  renderAcademyMode('recommended');
+  if($('academy-achievements-grid')) $('academy-achievements-grid').innerHTML=[
+    ['🏆','Fechador Elite'],['💎','Especialista em Ticket'],['📞','Rei do Ativo'],['🛡️','Qualidade Controlada'],['🚀','Maior Evolução']
+  ].map((x,i)=>`<div class="achievement ${i>1?'locked':''}"><span>${x[0]}</span><b>${x[1]}</b><small>${i>1?'Bloqueado':'Conquistado'}</small></div>`).join('');
+}
+function enhanceCoachEvidence(id){
+  const row=rankingRows().find(r=>r.seller_id===id); if(!row||!$('coach-proof'))return;
+  $('coach-proof').innerHTML=[
+    evidenceLine('Receita',row.revenue,avgMetric('revenue'),'money'),
+    evidenceLine('Ticket',row.average_ticket,avgMetric('average_ticket'),'money'),
+    evidenceLine('Ativo',row.active_revenue,avgMetric('active_revenue'),'money'),
+    evidenceLine('Cancelamento',row.cancellation_rate,avgMetric('cancellation_rate'),'pct')
+  ].join('');
+  updateCoachFeedback();
+}
+const _renderCoachV21=renderCoach;
+renderCoach=function(id){_renderCoachV21(id);enhanceCoachEvidence(id);};
 
 $('claim-admin-button').onclick=async()=>{
   setMessage('settings-message','Ativando...');

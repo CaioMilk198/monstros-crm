@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Monstros AI v2.0 Beta</title>
+  <title>Monstros AI v2.1 Piloto</title>
   <link rel="stylesheet" href="styles.css" />
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
@@ -47,7 +47,7 @@
 
   <div id="app" class="app hidden">
     <aside>
-      <div class="brand"><span>MONSTROS</span> AI <small>BETA 2.0</small></div>
+      <div class="brand"><span>MONSTROS</span> AI <small>PILOTO 2.1</small></div>
       <nav>
         <button class="nav active" data-view="dashboard">Centro de Comando</button>
         <button class="nav" data-view="import">Importar planilha</button>
@@ -257,40 +257,52 @@
         </div>
       </section>
 
+      
       <section id="view-profile360" class="view hidden">
-        <div class="panel">
-          <div class="profile-header">
-            <div>
-              <small>Perfil 360</small>
-              <h3 id="profile360-name">Selecione um vendedor no Ranking</h3>
-              <div id="profile360-dna" class="dna-tags"></div>
-            </div>
-            <div class="profile-score">
-              <small>Índice individual</small>
-              <strong id="profile360-score">—</strong>
-            </div>
+        <div class="profile360-hero panel">
+          <div class="profile360-avatar" id="profile360-avatar">?</div>
+          <div class="profile360-main">
+            <small>PERFIL 360</small>
+            <h2 id="profile360-name">Selecione um vendedor no Ranking</h2>
+            <p id="profile360-subtitle">Dossiê comercial, evolução, potencial e plano de desenvolvimento.</p>
+            <div id="profile360-tags"></div>
+          </div>
+          <div class="profile360-scorebox">
+            <small>Índice individual</small>
+            <strong id="profile360-score">—</strong>
+            <span id="profile360-position">—</span>
           </div>
         </div>
-        <div class="profile-grid">
-          <div class="panel">
-            <h3>Indicadores atuais</h3>
-            <div id="profile360-kpis" class="profile-kpis"></div>
-<div class="profile-analysis-grid">
-  <div><h4>Radar comercial</h4><div id="profile360-radar" class="seller-radar"></div></div>
-  <div><h4>Dinheiro deixado na mesa</h4><div id="profile360-money"></div></div>
-</div>
-          </div>
-          <div class="panel">
-            <h3>Missão recomendada</h3>
-            <div id="profile360-mission">Selecione um vendedor.</div>
-<div id="profile360-comparison" class="profile-comparison"></div>
-          </div>
-          <div class="panel span-2">
-            <h3>Histórico</h3>
-            <div id="profile360-history"></div>
-          </div>
+
+        <div class="profile360-kpis">
+          <article class="panel"><small>Receita</small><strong id="p360-revenue">—</strong><span id="p360-share">—</span></article>
+          <article class="panel"><small>Ticket</small><strong id="p360-ticket">—</strong><span id="p360-ticket-gap">—</span></article>
+          <article class="panel"><small>Ativo</small><strong id="p360-active">—</strong><span id="p360-active-gap">—</span></article>
+          <article class="panel"><small>Cancelamento</small><strong id="p360-cancel">—</strong><span id="p360-cancel-gap">—</span></article>
+          <article class="panel"><small>Dinheiro na mesa</small><strong id="p360-money">—</strong><span>potencial estimado</span></article>
+        </div>
+
+        <div class="profile360-grid">
+          <article class="panel">
+            <div class="panel-title-row"><h3>Retrato do vendedor</h3><button id="p360-open-coach">Abrir Coach</button></div>
+            <div id="p360-summary"></div>
+          </article>
+          <article class="panel"><h3>Radar comercial</h3><div id="p360-radar" class="coach-radar"></div></article>
+          <article class="panel"><h3>Missão recomendada</h3><div id="p360-mission"></div></article>
+        </div>
+
+        <div class="profile360-grid">
+          <article class="panel"><h3>Comparação com a equipe</h3><div id="p360-compare"></div></article>
+          <article class="panel"><h3>Dinheiro deixado na mesa</h3><div id="p360-money-breakdown"></div></article>
+          <article class="panel"><h3>Próximo nível</h3><div id="p360-next-level"></div></article>
+        </div>
+
+        <div class="panel">
+          <div class="panel-title-row"><h3>Linha do tempo individual</h3><span class="live-badge">HISTÓRICO</span></div>
+          <div id="p360-timeline" class="smart-timeline"></div>
         </div>
       </section>
+
 
 
       <section id="view-warroom" class="view hidden">
@@ -323,13 +335,26 @@
             <article class="panel"><small>Melhor referência para copiar</small><h3 id="coach-benchmark">—</h3><p id="coach-benchmark-reason"></p></article>
           </div>
           <div class="coach-grid">
-            <article class="panel"><h3>O que está acontecendo?</h3><div id="coach-diagnosis"></div></article>
+            <article class="panel"><h3>Evidências do resultado</h3><div id="coach-diagnosis"></div><div id="coach-proof" class="coach-proof"></div></article>
             <article class="panel"><h3>Causa provável</h3><div id="coach-cause"></div></article>
             <article class="panel"><h3>Radar comercial</h3><div id="coach-radar" class="coach-radar"></div></article>
           </div>
           <div class="coach-grid">
             <article class="panel"><h3>Plano de ação — 7 dias</h3><div id="coach-plan"></div></article>
-            <article class="panel"><h3>Feedback pronto</h3><textarea id="coach-feedback" rows="12"></textarea><button id="copy-coach-feedback">Copiar feedback</button></article>
+            <article class="panel">
+      <div class="panel-title-row"><h3>Feedback pronto</h3><select id="coach-feedback-tone">
+        <option value="human">Humanizado</option>
+        <option value="objective">Objetivo</option>
+        <option value="demanding">Exigente</option>
+        <option value="motivational">Motivacional</option>
+      </select></div>
+      <p class="helper-text">Texto curto, natural e fácil de adaptar antes da conversa.</p>
+      <textarea id="coach-feedback" rows="10"></textarea>
+      <div class="coach-feedback-actions">
+        <button id="regenerate-coach-feedback">Gerar outra versão</button>
+        <button id="copy-coach-feedback">Copiar feedback</button>
+      </div>
+    </article>
             <article class="panel"><h3>Academy recomenda</h3><div id="coach-academy"></div></article>
           </div>
         </div>
@@ -347,6 +372,15 @@
       </section>
 
       <section id="view-analytics" class="view hidden">
+        <div class="analytics-toolbar panel">
+          <div><small>MONSTER ANALYTICS 2.1</small><h3>Leitura atual + evolução histórica</h3></div>
+          <div class="analytics-filter-group">
+            <button class="analytics-period active" data-period="current">Atual</button>
+            <button class="analytics-period" data-period="daily">Diário</button>
+            <button class="analytics-period" data-period="weekly">Semanal</button>
+            <button class="analytics-period" data-period="monthly">Mensal</button>
+          </div>
+        </div>
         <div id="analytics-summary" class="analytics-summary"></div>
         <div class="analytics-charts">
   <article class="panel"><h3>Receita</h3><div id="chart-revenue" class="mini-chart"></div></article>
@@ -369,10 +403,33 @@
         <div id="smart-timeline" class="smart-timeline"></div>
       </section>
 
+      
       <section id="view-academy" class="view hidden">
-        <div class="panel academy-hero"><small>MICROTREINAMENTOS ADAPTATIVOS</small><h3>Monstros Academy</h3><p>O conteúdo muda conforme o diagnóstico de cada vendedor.</p></div>
+        <div class="panel academy-hero">
+          <div><small>MICROTREINAMENTOS ADAPTATIVOS</small><h3>Monstros Academy</h3><p>Treinamento constante conectado ao resultado real da operação.</p></div>
+          <div class="academy-progress-box"><small>Progresso da equipe</small><strong id="academy-team-progress">0%</strong></div>
+        </div>
+        <div class="academy-recommended panel">
+          <div>
+            <small>RECOMENDADO PARA HOJE</small>
+            <h3 id="academy-today-title">Treino inteligente do dia</h3>
+            <p id="academy-today-text">O sistema escolherá o conteúdo conforme os maiores gargalos da equipe.</p>
+          </div>
+          <button id="academy-start-today">Começar treino</button>
+        </div>
+        <div class="academy-tabs">
+          <button class="academy-tab active" data-academy="recommended">Para hoje</button>
+          <button class="academy-tab" data-academy="tracks">Trilhas</button>
+          <button class="academy-tab" data-academy="objections">Objeções</button>
+          <button class="academy-tab" data-academy="challenges">Desafios</button>
+        </div>
         <div id="academy-grid" class="academy-grid"></div>
+        <div class="panel academy-achievements">
+          <h3>Conquistas</h3>
+          <div id="academy-achievements-grid"></div>
+        </div>
       </section>
+
 
       <section id="view-monstrao" class="view hidden">
         <div class="monstrao-layout">
@@ -427,7 +484,7 @@
     </main>
   </div>
 
-  <script src="monster-engine.js?v=2.0.0-beta"></script>
-  <script src="app.js?v=2.0.0-beta"></script>
+  <script src="monster-engine.js?v=2.1.0-piloto"></script>
+  <script src="app.js?v=2.1.0-piloto"></script>
 </body>
 </html>
