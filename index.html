@@ -47,7 +47,7 @@
 
   <div id="app" class="app hidden">
     <aside>
-      <div class="brand"><span>MONSTROS</span> AI <small>PILOTO 2.1</small></div>
+      <div class="brand"><span>MONSTROS</span> AI <small>PILOTO 2.2</small></div>
       <nav>
         <button class="nav active" data-view="dashboard">Centro de Comando</button>
         <button class="nav" data-view="import">Importar planilha</button>
@@ -361,6 +361,10 @@
       </section>
 
       <section id="view-director" class="view hidden">
+        <article class="panel director-briefing">
+          <div><small>BRIEFING EXECUTIVO</small><h3 id="director-greeting">Bom dia, Caio.</h3><p id="director-briefing-text">O Monster Director está organizando as prioridades da operação.</p></div>
+          <div class="director-actions"><button id="generate-meeting-button">Gerar reunião de 10 minutos</button><button id="open-simulator-button" class="secondary">Simular cenários</button></div>
+        </article>
         <div id="director-radar" class="director-radar"></div>
         <div class="director-grid">
           <article class="panel"><h3>O que aconteceu?</h3><div id="director-happened"></div></article>
@@ -399,7 +403,7 @@
 
       
       <section id="view-timeline" class="view hidden">
-        <div class="panel timeline-hero"><small>MEMÓRIA OPERACIONAL</small><h3>Timeline Inteligente</h3><p>Importações, mudanças de risco, missões e evolução da equipe em uma única linha do tempo.</p></div>
+        <div class="panel timeline-hero"><small>MEMÓRIA OPERACIONAL</small><h3>Timeline Inteligente</h3><p>Importações, mudanças de risco, missões, reconhecimento e evolução em uma única linha do tempo.</p><div class="timeline-filters"><button class="timeline-filter active" data-type="all">Tudo</button><button class="timeline-filter" data-type="risk">Riscos</button><button class="timeline-filter" data-type="win">Vitórias</button><button class="timeline-filter" data-type="ai">Decisões</button></div></div>
         <div id="smart-timeline" class="smart-timeline"></div>
       </section>
 
@@ -434,8 +438,7 @@
       <section id="view-monstrao" class="view hidden">
         <div class="monstrao-layout">
           <div class="panel">
-            <h3>Monstrão Lite</h3>
-            <p class="muted">Respostas geradas com os dados reais do Dashboard, sem custo de API nesta fase.</p>
+            <div class="monstrao-header"><div><small>GERENTE DIGITAL</small><h3>Monstrão Executivo</h3><p class="muted">Pergunte, compare, simule e transforme os dados em decisão.</p></div><span class="ai-status">● Dados conectados</span></div>
             <div id="chat-box" class="chat-box">
               <div class="chat-message bot">Olá. Posso explicar a equipe, apontar prioridades, reconhecer destaques e montar uma pauta rápida.</div>
             </div>
@@ -451,7 +454,7 @@
               <button class="secondary quick-question">Quem devo cobrar hoje?</button>
               <button class="secondary quick-question">Quem merece reconhecimento?</button>
               <button class="secondary quick-question">Qual é o maior risco?</button>
-              <button class="secondary quick-question">Monte a pauta da reunião.</button>
+              <button class="secondary quick-question">Monte a pauta da reunião.</button><button class="secondary quick-question">Onde estou perdendo dinheiro?</button><button class="secondary quick-question">Simule ticket 5% maior.</button>
             </div>
           </div>
         </div>
@@ -484,7 +487,9 @@
     </main>
   </div>
 
-  <script src="monster-engine.js?v=2.1.0-piloto"></script>
-  <script src="app.js?v=2.1.0-piloto"></script>
+  <div id="executive-modal" class="modal hidden"><div class="modal-card"><button class="modal-close" data-close-modal>×</button><div id="executive-modal-content"></div></div></div>
+  <div id="academy-modal" class="modal hidden"><div class="modal-card academy-player"><button class="modal-close" data-close-modal>×</button><div id="academy-player-content"></div></div></div>
+  <script src="monster-engine.js?v=2.2.0-piloto"></script>
+  <script src="app.js?v=2.2.0-piloto"></script>
 </body>
 </html>

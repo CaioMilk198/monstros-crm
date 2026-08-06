@@ -1,5 +1,5 @@
-console.info('MONSTEROS v1.0 - Intelligence Pilot');
-window.MONSTROS_CRM_VERSION='2.1.0-piloto';
+console.info('MONSTROS AI v2.2 - Executive Intelligence Pilot');
+window.MONSTROS_CRM_VERSION='2.2.0-piloto';
 let client = null;
 let profile = null;
 let preview = null;
@@ -1064,3 +1064,115 @@ window.openSeller360=async(id)=>{
 
 const today=new Date().toISOString().slice(0,10); $('indicator-date').value=today; $('competence').value=today.slice(0,7); $('target-competence').value=today.slice(0,7);
 boot();
+
+
+// ===== MONSTROS AI 2.2 — EXECUTIVE INTELLIGENCE =====
+let smartTimelineEvents=[];
+function firstName(){return (profile?.full_name||'Caio').split(' ')[0];}
+function operationalRisks(){return rankingRows().filter(r=>sellerAttention(r).some(x=>/baixo|cancelamento|risco|evolução/i.test(x))).sort((a,b)=>coachMetrics(b).total-coachMetrics(a).total);}
+function operationalLeaders(){return [...rankingRows()].sort((a,b)=>Number(b.revenue||0)-Number(a.revenue||0));}
+function executivePriorities(){
+  const risks=operationalRisks();
+  const leaders=operationalLeaders();
+  return [
+    risks[0]&&{seller:risks[0],title:`Recuperar ${risks[0].seller_name}`,impact:coachMetrics(risks[0]).total,action:sellerAttention(risks[0]).some(x=>/cancelamento/i.test(x))?'Ouvir três confirmações e corrigir o fechamento do pedido.':'Definir uma meta de curto prazo e acompanhar o próximo bloco.'},
+    risks[1]&&{seller:risks[1],title:`Destravar ${risks[1].seller_name}`,impact:coachMetrics(risks[1]).total,action:'Comparar com uma referência próxima e aplicar uma única mudança mensurável.'},
+    leaders[0]&&{seller:leaders[0],title:`Reconhecer ${leaders[0].seller_name}`,impact:0,action:'Registrar a melhor prática e compartilhar com a equipe.'}
+  ].filter(Boolean);
+}
+function updateDirectorBriefing(){
+  if(!$('director-briefing-text'))return;
+  const eng=dashboardPayload?.engine||{}, moneyData=eng.money||{}, proj=eng.projection||{};
+  const priorities=executivePriorities();
+  const total=Number(moneyData.total_opportunity||priorities.reduce((s,p)=>s+p.impact,0));
+  $('director-greeting').textContent=`${new Date().getHours()<12?'Bom dia':new Date().getHours()<18?'Boa tarde':'Boa noite'}, ${firstName()}.`;
+  $('director-briefing-text').innerHTML=dashboardPayload?.date
+    ? `Hoje existem <b>${money(total)}</b> em oportunidade mapeada. ${priorities[0]?`A prioridade nº 1 é <b>${priorities[0].title}</b>, com impacto estimado de <b>${money(priorities[0].impact)}</b>.`:''} A projeção atual é <b>${money(proj.projected_revenue||dashboardPayload?.summary?.projection)}</b>.`
+    : 'Importe os dados para receber um briefing executivo.';
+}
+function executiveMeetingText(){
+  const s=dashboardPayload?.summary||{}, p=dashboardPayload?.engine?.projection||{}, priorities=executivePriorities(), leader=operationalLeaders()[0];
+  return `<small>REUNIÃO DE 10 MINUTOS</small><h2>Roteiro pronto para conduzir a equipe</h2>
+  <div class="meeting-agenda">
+  <section><b>1. Abertura — 1 min</b><p>Bom dia, equipe. Ontem fechamos com ${money(s.revenue)} e ${s.orders||0} pedidos. Hoje vamos concentrar energia no que mais move o caixa.</p></section>
+  <section><b>2. Placar — 2 min</b><p>Ticket atual: ${money(s.average_ticket)}. Cancelamento: ${pct(s.cancellation_rate)}. Projeção: ${money(p.projected_revenue||s.projection)}.</p></section>
+  <section><b>3. Reconhecimento — 1 min</b><p>${leader?`${leader.seller_name} lidera o faturamento com ${money(leader.revenue)}. Vamos identificar e repetir uma prática vencedora.`:'Reconhecer a melhor evolução do período.'}</p></section>
+  <section><b>4. Prioridades — 4 min</b>${priorities.slice(0,3).map((x,i)=>`<p><strong>${i+1}. ${x.title}</strong><br>${x.action} ${x.impact?`Impacto: ${money(x.impact)}.`:''}</p>`).join('')}</section>
+  <section><b>5. Fechamento — 2 min</b><p>Cada pessoa sai com uma ação clara para o próximo bloco. Ao final, vamos conferir resultado, aprendizado e próxima decisão.</p></section></div>
+  <div class="modal-actions"><button onclick="navigator.clipboard.writeText(this.closest('.modal-card').innerText)">Copiar reunião</button><button class="secondary" data-close-modal>Fechar</button></div>`;
+}
+function simulatorHtml(){
+  const s=dashboardPayload?.summary||{}, rows=rankingRows();
+  const baseTicket=Number(s.average_ticket||0), orders=Number(s.orders||0), cancel=Number(s.cancellation_rate||0), revenue=Number(s.revenue||0);
+  return `<small>SIMULADOR DE CENÁRIOS</small><h2>Quanto o resultado muda?</h2><p>Movimente os controles e veja o impacto estimado.</p>
+  <div class="sim-control"><label>Elevar ticket <b id="sim-ticket-label">5%</b></label><input id="sim-ticket" type="range" min="0" max="20" value="5"></div>
+  <div class="sim-control"><label>Reduzir cancelamento <b id="sim-cancel-label">2 p.p.</b></label><input id="sim-cancel" type="range" min="0" max="10" value="2"></div>
+  <div class="sim-control"><label>Recuperar vendedores abaixo do ritmo <b id="sim-people-label">2</b></label><input id="sim-people" type="range" min="0" max="${Math.max(1,operationalRisks().length)}" value="${Math.min(2,operationalRisks().length)}"></div>
+  <div id="sim-result" class="sim-result"></div><div class="modal-actions"><button id="sim-create-mission">Transformar em missão</button><button class="secondary" data-close-modal>Fechar</button></div>`;
+}
+function updateSimulator(){
+  const s=dashboardPayload?.summary||{}, ticketPct=Number($('sim-ticket')?.value||0), cancelPP=Number($('sim-cancel')?.value||0), people=Number($('sim-people')?.value||0);
+  if($('sim-ticket-label'))$('sim-ticket-label').textContent=`${ticketPct}%`;
+  if($('sim-cancel-label'))$('sim-cancel-label').textContent=`${cancelPP} p.p.`;
+  if($('sim-people-label'))$('sim-people-label').textContent=people;
+  const ticketGain=Number(s.revenue||0)*(ticketPct/100);
+  const cancelGain=Number(s.revenue||0)*Math.min(Number(s.cancellation_rate||0),cancelPP/100);
+  const peopleGain=operationalRisks().slice(0,people).reduce((a,r)=>a+coachMetrics(r).revenueGap*.35,0);
+  const gain=ticketGain+cancelGain+peopleGain;
+  if($('sim-result'))$('sim-result').innerHTML=`<small>GANHO POTENCIAL</small><strong>${money(gain)}</strong><p>Nova projeção estimada: <b>${money(Number(dashboardPayload?.engine?.projection?.projected_revenue||s.projection||0)+gain)}</b></p><div><span>Ticket ${money(ticketGain)}</span><span>Cancelamento ${money(cancelGain)}</span><span>Produtividade ${money(peopleGain)}</span></div>`;
+}
+function showExecutiveModal(content){$('executive-modal-content').innerHTML=content;$('executive-modal').classList.remove('hidden');document.querySelectorAll('[data-close-modal]').forEach(b=>b.onclick=()=>b.closest('.modal').classList.add('hidden'));}
+if($('generate-meeting-button'))$('generate-meeting-button').onclick=()=>showExecutiveModal(executiveMeetingText());
+if($('open-simulator-button'))$('open-simulator-button').onclick=()=>{showExecutiveModal(simulatorHtml());['sim-ticket','sim-cancel','sim-people'].forEach(id=>$(id).oninput=updateSimulator);updateSimulator();$('sim-create-mission').onclick=()=>{ $('executive-modal').classList.add('hidden');openView('dashboard');$('new-mission-button')?.click();$('mission-title').value='Executar cenário de recuperação';$('mission-reason').value='Cenário criado pelo simulador executivo.';$('mission-action').value='Elevar ticket, reduzir cancelamento e recuperar vendedores abaixo do ritmo.';};};
+
+function academyLesson(title,category,description){
+  const examples={
+    'Está caro':['Não corra para o desconto. Primeiro valide o valor percebido.','“Entendi. Quando você diz caro, está comparando com qual solução?”','Faça três perguntas antes de oferecer qualquer condição.'],
+    'Vou pensar':['Transforme uma saída vaga em próximo passo claro.','“Claro. O que exatamente você precisa avaliar para decidir?”','Combine data e horário de retorno.'],
+    'Pedido confirmado, cliente comprometido':['Reduza cancelamentos com resumo e compromisso final.','“Então ficou combinado: produto, valor, entrega e forma de pagamento. Está tudo correto?”','Use o checklist em cinco pedidos hoje.'],
+    'Como elevar o valor por pedido':['Ancore a oferta no objetivo do cliente e apresente pacote completo.','“Para atingir o resultado que você quer, a opção mais completa é...”','Faça 10 ofertas principal + complementar.']
+  };
+  const ex=examples[title]||['Aplique uma mudança simples, mensurável e repetível.',`Use esta ideia na próxima conversa: ${description}`,'Teste em cinco atendimentos e registre o resultado.'];
+  return `<small>${category.toUpperCase()} • MICROTREINO</small><h2>${title}</h2><div class="lesson-progress"><i style="width:0%"></i></div><div class="lesson-step"><b>1. Ideia central</b><p>${ex[0]}</p></div><div class="lesson-step"><b>2. Exemplo de fala</b><blockquote>${ex[1]}</blockquote></div><div class="lesson-step"><b>3. Exercício prático</b><p>${ex[2]}</p></div><div class="lesson-check"><label><input type="checkbox"> Entendi a técnica</label><label><input type="checkbox"> Vou aplicar hoje</label></div><div class="modal-actions"><button id="complete-lesson">Concluir treino</button><button class="secondary" data-close-modal>Fechar</button></div>`;
+}
+function openAcademyLesson(title,category,description){
+  $('academy-player-content').innerHTML=academyLesson(title,category,description);$('academy-modal').classList.remove('hidden');document.querySelectorAll('[data-close-modal]').forEach(b=>b.onclick=()=>b.closest('.modal').classList.add('hidden'));
+  $('complete-lesson').onclick=()=>{const key='monstros_academy_completed';const done=JSON.parse(localStorage.getItem(key)||'[]');if(!done.includes(title))done.push(title);localStorage.setItem(key,JSON.stringify(done));$('academy-modal').classList.add('hidden');renderAcademy();};
+}
+const _academyMode22=renderAcademyMode;
+renderAcademyMode=function(mode='recommended'){
+  const el=$('academy-grid');if(!el)return;const modules=academyModulesFor(mode);const completed=JSON.parse(localStorage.getItem('monstros_academy_completed')||'[]');
+  el.innerHTML=modules.map((m,i)=>`<article class="panel academy-module ${completed.includes(m[2])?'completed':''}"><span>${m[0]}</span><small>${m[1]}</small><h3>${m[2]}</h3><p>${m[3]}</p><div class="academy-meta"><b>${m[4]}</b><em>${completed.includes(m[2])?'✓ Concluído':'★'.repeat(Math.max(3,5-(i%3)))}</em></div><button class="academy-open" data-title="${m[2].replace(/"/g,'&quot;')}" data-category="${m[1]}" data-description="${m[3].replace(/"/g,'&quot;')}">${completed.includes(m[2])?'Revisar':'Começar'}</button></article>`).join('');
+  el.querySelectorAll('.academy-open').forEach(b=>b.onclick=()=>openAcademyLesson(b.dataset.title,b.dataset.category,b.dataset.description));
+};
+const _renderAcademy22=renderAcademy;
+renderAcademy=function(){_renderAcademy22();const completed=JSON.parse(localStorage.getItem('monstros_academy_completed')||'[]');const operational=Math.min(100,Math.round(Number(dashboardPayload?.engine?.health?.monster_index||0)));if($('academy-team-progress'))$('academy-team-progress').textContent=`${Math.min(100,Math.round(operational*.7+Math.min(30,completed.length*5)))}%`;};
+if($('academy-start-today'))$('academy-start-today').onclick=()=>{const title=$('academy-today-title').textContent.replace('Treino recomendado: ','');openAcademyLesson(title,'Recomendado',$('academy-today-text').textContent);};
+
+function renderTimelineFilter(type='all'){
+  const el=$('smart-timeline');if(!el)return;const events=type==='all'?smartTimelineEvents:smartTimelineEvents.filter(e=>e.type===type);
+  el.innerHTML=events.map(e=>`<div class="smart-event ${e.type}"><div class="event-dot"></div><time>${e.time}</time><div><h4>${e.title}</h4><p>${e.text}</p>${e.seller_id?`<button onclick="openCoach('${e.seller_id}')">Abrir Coach</button>`:''}</div></div>`).join('')||'<div class="panel">Nenhum evento deste tipo.</div>';
+}
+const _renderTimeline22=renderSmartTimeline;
+renderSmartTimeline=function(){
+  const date=dashboardPayload?.date, risks=operationalRisks().slice(0,4), leader=operationalLeaders()[0], potential=dashboardPayload?.engine?.money?.total_opportunity||rankingRows().reduce((s,r)=>s+coachMetrics(r).total,0);
+  smartTimelineEvents=[];
+  if(date)smartTimelineEvents.push({time:'08:00',type:'import',title:'Dados consolidados',text:`Importação de ${new Date(date+'T12:00').toLocaleDateString('pt-BR')} • ${rankingRows().length} vendedores • ${money(dashboardPayload?.summary?.revenue)} realizados.`});
+  risks.forEach((r,i)=>smartTimelineEvents.push({time:`${String(8+i).padStart(2,'0')}:${15+i*10}`,type:'risk',seller_id:r.seller_id,title:`Atenção: ${r.seller_name}`,text:`${sellerAttention(r).filter(x=>/baixo|cancelamento|risco|evolução/i.test(x)).join(' • ')||'Desvio identificado'} • impacto ${money(coachMetrics(r).total)}.`}));
+  if(leader)smartTimelineEvents.push({time:'11:30',type:'win',seller_id:leader.seller_id,title:'Destaque identificado',text:`${leader.seller_name} lidera com ${money(leader.revenue)}. Boa prática pronta para replicação.`});
+  smartTimelineEvents.push({time:'Agora',type:'ai',title:'Monster Director recalculado',text:`Potencial estimado: ${money(potential)}. Próxima decisão: ${executivePriorities()[0]?.title||'acompanhar evolução da equipe'}.`});renderTimelineFilter('all');
+};
+document.querySelectorAll('.timeline-filter').forEach(b=>b.onclick=()=>{document.querySelectorAll('.timeline-filter').forEach(x=>x.classList.remove('active'));b.classList.add('active');renderTimelineFilter(b.dataset.type);});
+
+const _answerMonstrao22=answerMonstrao;
+answerMonstrao=function(question){
+  const q=normalize(question), s=dashboardPayload?.summary||{}, priorities=executivePriorities();
+  if(q.includes('PERDENDO DINHEIRO')||q.includes('ONDE ESTA O DINHEIRO')){const parts=operationalRisks().slice(0,5).map(r=>`${r.seller_name}: ${money(coachMetrics(r).total)}`);return `Mapa de dinheiro:\n${parts.join('\n')}\nA primeira ação recomendada é ${priorities[0]?.title||'acompanhar a equipe'}.`;}
+  if(q.includes('SIMULE')||q.includes('SIMULAR')){const gain=Number(s.revenue||0)*.05;return `Com ticket 5% maior, o ganho estimado é ${money(gain)}. A projeção iria para aproximadamente ${money(Number(dashboardPayload?.engine?.projection?.projected_revenue||s.projection||0)+gain)}. Use o simulador no Monster Director para combinar ticket, cancelamento e produtividade.`;}
+  if(q.includes('QUEM PODE')||q.includes('BATER')){const target=Number((q.match(/\d+[\.,]?\d*/)||[])[0]?.replace('.','').replace(',','.')||80000);const candidates=operationalLeaders().map(r=>({r,gap:target-Number(r.revenue||0)})).filter(x=>x.gap>0).sort((a,b)=>a.gap-b.gap);return candidates[0]?`${candidates[0].r.seller_name} está mais perto. Faltam ${money(candidates[0].gap)} para ${money(target)}.`:'Os principais vendedores já ultrapassaram esse valor.';}
+  return _answerMonstrao22(question);
+};
+
+const _loadDashboard22=loadDashboard;
+loadDashboard=async function(){const out=await _loadDashboard22();updateDirectorBriefing();return out;};
+setTimeout(()=>{updateDirectorBriefing();renderSmartTimeline();renderAcademy();},500);
