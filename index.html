@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Monstros CRM v0.6.2</title>
+  <title>Monstros CRM v0.7 — Monster Engine</title>
   <link rel="stylesheet" href="styles.css" />
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
@@ -52,6 +52,8 @@
         <button class="nav active" data-view="dashboard">Centro de Comando</button>
         <button class="nav" data-view="import">Importar planilha</button>
         <button class="nav" data-view="ranking">Ranking</button>
+        <button class="nav" data-view="intelligence">Inteligência</button>
+        <button class="nav" data-view="profile360">Perfil 360</button>
         <button class="nav" data-view="monstrao">Monstrão</button>
         <button class="nav" data-view="settings">Configurações</button>
       </nav>
@@ -91,6 +93,28 @@
             <div class="panel kpi"><small>Cancelamento</small><strong id="kpi-cancellation">—</strong></div>
           </div>
           <div class="insight-grid" id="insight-grid"></div>
+          <div class="monster-strip">
+            <div class="panel monster-index-card">
+              <small>Índice Monstro</small>
+              <strong id="monster-index">—</strong>
+              <span id="monster-status">Aguardando dados</span>
+            </div>
+            <div class="panel route-card">
+              <small>Onde estamos</small>
+              <strong id="route-now">—</strong>
+              <span id="route-now-detail">—</span>
+            </div>
+            <div class="panel route-card">
+              <small>Para onde vamos</small>
+              <strong id="route-projection">—</strong>
+              <span id="route-projection-detail">—</span>
+            </div>
+            <div class="panel route-card">
+              <small>Onde está o dinheiro</small>
+              <strong id="route-money">—</strong>
+              <span id="route-money-detail">—</span>
+            </div>
+          </div>
           <div class="dashboard-grid">
             <div class="panel">
               <div class="panel-title-row"><h3>Missão do Dia</h3><span class="live-badge">Prioridades</span></div>
@@ -158,7 +182,59 @@
       </section>
 
 
-      <section id="view-monstrao" class="view hidden">
+      
+      <section id="view-intelligence" class="view hidden">
+        <div class="engine-grid">
+          <div class="panel">
+            <h3>Saúde da Operação</h3>
+            <div id="health-bars"></div>
+          </div>
+          <div class="panel">
+            <h3>Onde ganhar dinheiro</h3>
+            <div id="opportunity-list"></div>
+          </div>
+          <div class="panel">
+            <h3>Projeção por dias úteis</h3>
+            <div id="calendar-projection"></div>
+          </div>
+          <div class="panel span-2">
+            <h3>DNA Comercial da Equipe</h3>
+            <div id="dna-grid" class="dna-grid"></div>
+          </div>
+        </div>
+      </section>
+
+      <section id="view-profile360" class="view hidden">
+        <div class="panel">
+          <div class="profile-header">
+            <div>
+              <small>Perfil 360</small>
+              <h3 id="profile360-name">Selecione um vendedor no Ranking</h3>
+              <div id="profile360-dna" class="dna-tags"></div>
+            </div>
+            <div class="profile-score">
+              <small>Índice individual</small>
+              <strong id="profile360-score">—</strong>
+            </div>
+          </div>
+        </div>
+        <div class="profile-grid">
+          <div class="panel">
+            <h3>Indicadores atuais</h3>
+            <div id="profile360-kpis" class="profile-kpis"></div>
+          </div>
+          <div class="panel">
+            <h3>Missão recomendada</h3>
+            <div id="profile360-mission">Selecione um vendedor.</div>
+          </div>
+          <div class="panel span-2">
+            <h3>Histórico</h3>
+            <div id="profile360-history"></div>
+          </div>
+        </div>
+      </section>
+
+<section id="view-monstrao" class="view hidden">
         <div class="monstrao-layout">
           <div class="panel">
             <h3>Monstrão Lite</h3>
@@ -194,6 +270,11 @@
             <div><label>Limite de cancelamento (%)</label><input id="target-cancellation" type="number" min="0" step="0.1" value="8" /></div>
           </div>
           <button id="save-target-button">Salvar metas</button>
+          <div class="form-row calendar-settings">
+            <div><label>Dias úteis do mês</label><input id="business-total" type="number" min="1" max="31" value="22" /></div>
+            <div><label>Dias úteis já trabalhados</label><input id="business-elapsed" type="number" min="1" max="31" value="1" /></div>
+          </div>
+          <button id="save-calendar-button" class="secondary">Salvar dias úteis</button>
           <div id="target-message" class="message"></div>
           <hr class="divider" />
           <h3>Ambiente piloto</h3>
@@ -206,6 +287,7 @@
     </main>
   </div>
 
-  <script src="app.js?v=0.6.2"></script>
+  <script src="monster-engine.js?v=0.7.0"></script>
+  <script src="app.js?v=0.7.0"></script>
 </body>
 </html>

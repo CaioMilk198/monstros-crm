@@ -1,10 +1,22 @@
 # CHANGELOG
 
-## v0.6.1 — Hotfix RPC e JavaScript
+## v0.7.0 — Monster Engine Beta
 
-### Corrigido
-- RPC antiga `confirm_dashboard_import` retornando 404.
-- Compatibilidade com `finalize_import_v3`.
-- Função `formatBRLInput` ausente.
-- Função `parseBRLInput` ausente.
-- Mensagens de erro da confirmação agora mostram detalhes.
+### Adicionado
+- Projeção correta por dias úteis.
+- Configuração de dias úteis totais e trabalhados.
+- Índice Monstro da operação.
+- Saúde por Receita, Ticket, Cancelamento e Ativo.
+- Centro “Onde está o dinheiro”.
+- Oportunidade financeira por ticket, cancelamento e ativo.
+- DNA Comercial composto: até quatro forças e dois pontos de atenção.
+- Medalhas de ouro, prata e bronze no Ranking.
+- Perfil 360 clicável a partir do Ranking e do DNA.
+- Histórico individual por importação.
+- Participação do vendedor no resultado da equipe.
+
+### Próxima sprint
+- Missões manuais e automáticas com impacto financeiro.
+- Feedback Inteligente.
+- Linha do tempo do vendedor.
+- Monstrão Director usando o Monster Engine.

@@ -1,5 +1,5 @@
-console.info('MONSTROS CRM v0.6.2 - app.js atualizado');
-window.MONSTROS_CRM_VERSION='0.6.2';
+console.info('MONSTROS CRM v0.7 - SaaS Intelligence Beta');
+window.MONSTROS_CRM_VERSION='0.7.0';
 let client = null;
 let profile = null;
 let preview = null;
@@ -111,7 +111,7 @@ function openView(name){
   document.querySelectorAll('.nav').forEach(x=>x.classList.toggle('active',x.dataset.view===name));
   document.querySelectorAll('.view').forEach(x=>x.classList.add('hidden'));
   $(`view-${name}`).classList.remove('hidden');
-  const titles={dashboard:['Centro de Comando','O que precisa da sua atenção agora.'],import:['Central de Importação','Valide antes de confirmar.'],ranking:['Ranking','Score e diagnóstico dos vendedores.'],monstrao:['Monstrão','Copiloto gerencial baseado nos dados atuais.'],settings:['Configurações','Metas, ambiente piloto e permissões.']};
+  const titles={dashboard:['Centro de Comando','O que precisa da sua atenção agora.'],import:['Central de Importação','Valide antes de confirmar.'],ranking:['Ranking','Índice Monstro e DNA Comercial.'],intelligence:['Inteligência Gerencial','Onde estamos, para onde vamos e onde está o dinheiro.'],profile360:['Perfil 360','Dossiê individual do vendedor.'],monstrao:['Monstrão','Copiloto gerencial baseado nos dados atuais.'],settings:['Configurações','Metas, dias úteis e permissões.']};
   $('view-title').textContent=titles[name][0]; $('view-subtitle').textContent=titles[name][1];
   if(name==='import') loadImportHistory();
 }
@@ -141,6 +141,11 @@ async function loadDashboard(){
   $('mission-list').innerHTML=(data.mission||[]).length?(data.mission||[]).map(m=>`<div class="mission ${m.priority}"><strong>${m.sequence}. ${m.title}</strong><small>${m.reason}</small><div>${m.action_text}</div><button onclick="completeMission('${m.id}')">Concluir</button></div>`).join(''):'<p>Nenhuma prioridade gerada para hoje.</p>';
   $('insight-grid').innerHTML=(data.insights||[]).map(x=>`<div class="insight-card"><strong>${x.title}</strong><p>${x.text}</p></div>`).join('');
   $('monstrao-summary').textContent=buildExecutiveSummary(data);
+  if(window.MonsterEngine){
+    await window.MonsterEngine.load(client);
+    window.MonsterEngine.renderDashboard();
+    window.MonsterEngine.renderIntelligence();
+  }
 }
 function sellerDiagnosis(r,team){
   const avgRevenue=(team||[]).reduce((s,x)=>s+Number(x.revenue||0),0)/Math.max(1,(team||[]).length);
@@ -153,7 +158,8 @@ function sellerDiagnosis(r,team){
 function renderRanking(rows){
   $('ranking-body').innerHTML=rows.map((r,i)=>{
     const d=sellerDiagnosis(r,rows);
-    return `<tr><td>${i+1}</td><td>${r.seller_name}</td><td><span class="score-badge">${Number(r.score||0).toFixed(0)}</span></td><td>${money(r.revenue)}</td><td>${r.orders||0}</td><td>${money(r.average_ticket)}</td><td>${money(r.active_revenue)}</td><td>${pct(r.cancellation_rate)}</td><td><span class="diagnosis ${d[1]}">${d[0]}</span></td></tr>`;
+    const medal=i===0?'🥇':i===1?'🥈':i===2?'🥉':`${i+1}`;
+    return `<tr><td>${medal}</td><td><button class="seller-link" onclick="openSeller360('${r.seller_id}')">${r.seller_name}</button></td><td><span class="score-badge">${Number(r.score||0).toFixed(0)}</span></td><td>${money(r.revenue)}</td><td>${r.orders||0}</td><td>${money(r.average_ticket)}</td><td>${money(r.active_revenue)}</td><td>${pct(r.cancellation_rate)}</td><td><span class="diagnosis ${d[1]}">${d[0]}</span></td></tr>`;
   }).join('');
 }
 window.completeMission=async(id)=>{
@@ -390,6 +396,52 @@ $('save-target-button').onclick=async()=>{
     $('target-ticket').value=formatBRLInput(ticket);
     await loadDashboard();
   }
+};
+
+
+$('save-calendar-button').onclick=async()=>{
+  const competence=$('target-competence').value;
+  const total=Number($('business-total').value||0);
+  const elapsed=Number($('business-elapsed').value||0);
+  if(!competence) return setMessage('target-message','Informe a competência.','error');
+  const {data,error}=await client.rpc('set_business_calendar',{
+    p_competence:`${competence}-01`,
+    p_total_business_days:total,
+    p_elapsed_business_days:elapsed
+  });
+  setMessage('target-message',error?error.message:`Dias úteis salvos: ${elapsed} trabalhados de ${total}.`,error?'error':'success');
+  if(!error) await loadDashboard();
+};
+
+window.openSeller360=async(id)=>{
+  openView('profile360');
+  const dna=window.MonsterEngine?.dnaForSeller(id);
+  const {data,error}=await client.rpc('get_seller_360',{p_seller_id:id});
+  if(error){console.error(error);return;}
+  const latest=data?.latest||{};
+  $('profile360-name').textContent=data?.seller?.name||'Vendedor';
+  $('profile360-score').textContent=Number(latest.score||0).toFixed(0);
+  $('profile360-dna').innerHTML=[
+    ...(dna?.strengths||[]).filter(Boolean).slice(0,4).map(x=>`<span class="dna-strength">${x}</span>`),
+    ...(dna?.attention||[]).filter(Boolean).slice(0,2).map(x=>`<span class="dna-attention">${x}</span>`)
+  ].join('');
+  $('profile360-kpis').innerHTML=`
+    <div><small>Faturamento</small><strong>${money(latest.revenue)}</strong></div>
+    <div><small>Pedidos</small><strong>${latest.orders||0}</strong></div>
+    <div><small>Ticket</small><strong>${money(latest.ticket)}</strong></div>
+    <div><small>Ativo</small><strong>${money(latest.active)}</strong></div>
+    <div><small>Cancelamento</small><strong>${pct(latest.cancellation)}</strong></div>
+    <div><small>Participação</small><strong>${pct(dna?.participation)}</strong></div>`;
+  const mission = Number(latest.cancellation||0)>0.15
+    ? 'Auditar três vendas e aplicar feedback de confirmação.'
+    : Number(latest.revenue||0)<((dashboardPayload?.summary?.revenue||0)/(dashboardPayload?.summary?.seller_count||1))*0.65
+      ? 'Revisar carteira e acompanhar o próximo bloco de vendas.'
+      : 'Reconhecer o desempenho e registrar a melhor prática.';
+  $('profile360-mission').innerHTML=`<strong>${mission}</strong><p>O Monstrão usa os dados atuais para orientar a próxima ação.</p>`;
+  const history=data?.history||[];
+  $('profile360-history').innerHTML=history.length
+    ? `<table><thead><tr><th>Data</th><th>Faturamento</th><th>Ticket</th><th>Cancelamento</th><th>Índice</th></tr></thead><tbody>${history.map(h=>`<tr><td>${new Date(h.date+'T12:00:00').toLocaleDateString('pt-BR')}</td><td>${money(h.revenue)}</td><td>${money(h.ticket)}</td><td>${pct(h.cancellation)}</td><td>${Number(h.score||0).toFixed(0)}</td></tr>`).join('')}</tbody></table>`
+    : '<p>O histórico crescerá a cada nova importação.</p>';
 };
 
 const today=new Date().toISOString().slice(0,10); $('indicator-date').value=today; $('competence').value=today.slice(0,7); $('target-competence').value=today.slice(0,7);
