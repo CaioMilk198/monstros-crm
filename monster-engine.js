@@ -4,7 +4,7 @@ window.MonsterEngine = {
 
   async load(client) {
     const today = new Date().toISOString().slice(0,10);
-    const {data,error} = await client.rpc('get_monster_engine_payload_v23',{p_date:today});
+    const {data,error} = await client.rpc('get_monster_engine_payload_v30',{p_date:today});
     if(error) {
       console.error('Monster Engine:',error);
       const message=error.details||error.hint||error.message||'Falha no motor de inteligência';
@@ -89,4 +89,4 @@ window.MonsterEngine = {
     return (this.payload?.seller_dna||[]).find(x=>x.seller_id===id);
   }
 };
-console.info('MONSTROS CRM v0.7.3 - Monster Engine Intelligence');
+console.info('MONSTROS CRM v0.8 - Monster Engine Mission Control');

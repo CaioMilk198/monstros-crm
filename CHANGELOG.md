@@ -1,10 +1,15 @@
 # CHANGELOG
 
-## v0.7.3
-- Ranking por faturamento.
-- Medalhas por faturamento.
-- Diagnóstico composto.
-- Correção do percentual projetado.
-- Índice Monstro com risco operacional.
-- Oportunidades financeiras por cenários.
-- Saúde da operação mais realista.
+## v0.8.0 — Controle de Missões
+
+### Corrigido
+- Monstrão usa a projeção por dias úteis.
+- Ranking compacto separa nome e Score.
+- Índice 78 passa a ser classificado como Atenção.
+
+### Adicionado
+- Missões manuais criadas pelo gestor.
+- Seleção de vendedor ou missão para a equipe.
+- Prioridade, motivo, ação, prazo, tempo e impacto financeiro.
+- Iniciar e concluir missão.
+- Registro persistente no Supabase.

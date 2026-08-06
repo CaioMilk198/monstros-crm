@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Monstros CRM v0.7.3 — Ranking e Intelligence</title>
+  <title>Monstros CRM v0.8 — Controle de Missões</title>
   <link rel="stylesheet" href="styles.css" />
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
@@ -117,8 +117,49 @@
           </div>
           <div class="dashboard-grid">
             <div class="panel">
-              <div class="panel-title-row"><h3>Missão do Dia</h3><span class="live-badge">Prioridades</span></div>
+              <div class="panel-title-row">
+                <h3>Missão do Dia</h3>
+                <div class="mission-header-actions">
+                  <span class="live-badge">Prioridades</span>
+                  <button id="new-mission-button" class="secondary compact-button">Nova missão</button>
+                </div>
+              </div>
               <div id="mission-list"></div>
+              <div id="manual-missions-list" class="manual-missions-list"></div>
+              <div id="mission-form" class="mission-form hidden">
+                <h4>Criar missão manual</h4>
+                <label>Título</label>
+                <input id="mission-title" placeholder="Ex.: Revisar cancelamentos de Melissa" />
+                <div class="form-row">
+                  <div>
+                    <label>Vendedor</label>
+                    <select id="mission-seller"><option value="">Equipe / sem vendedor</option></select>
+                  </div>
+                  <div>
+                    <label>Prioridade</label>
+                    <select id="mission-priority">
+                      <option value="critical">Crítica</option>
+                      <option value="high">Alta</option>
+                      <option value="medium" selected>Média</option>
+                      <option value="low">Baixa</option>
+                    </select>
+                  </div>
+                </div>
+                <label>Motivo</label>
+                <textarea id="mission-reason" placeholder="Por que esta missão é necessária?"></textarea>
+                <label>Ação recomendada</label>
+                <textarea id="mission-action" placeholder="O que precisa ser feito?"></textarea>
+                <div class="form-row">
+                  <div><label>Impacto estimado (R$)</label><input id="mission-impact" type="number" min="0" step="0.01" value="0" /></div>
+                  <div><label>Tempo estimado (min)</label><input id="mission-minutes" type="number" min="1" value="20" /></div>
+                  <div><label>Prazo</label><input id="mission-due" type="date" /></div>
+                </div>
+                <div class="mission-form-actions">
+                  <button id="save-mission-button">Criar missão</button>
+                  <button id="cancel-mission-button" class="secondary">Cancelar</button>
+                </div>
+                <div id="mission-form-message" class="message"></div>
+              </div>
             </div>
             <div class="panel">
               <div class="panel-title-row"><h3>Ranking Monstros</h3><button class="secondary compact-button" data-go="ranking">Ver completo</button></div>
@@ -287,7 +328,7 @@
     </main>
   </div>
 
-  <script src="monster-engine.js?v=0.7.3"></script>
-  <script src="app.js?v=0.7.3"></script>
+  <script src="monster-engine.js?v=0.8.0"></script>
+  <script src="app.js?v=0.8.0"></script>
 </body>
 </html>
