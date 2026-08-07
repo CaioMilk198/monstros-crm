@@ -1262,3 +1262,178 @@ answerMonstrao=function(question){
 const _loadDashboard22=loadDashboard;
 loadDashboard=async function(){const out=await _loadDashboard22();updateDirectorBriefing();return out;};
 setTimeout(()=>{updateDirectorBriefing();renderSmartTimeline();renderAcademy();},500);
+
+// ===== MONSTROS AI 2.4 — FLUXO DE EXECUÇÃO INTEGRADO =====
+console.info('MONSTROS AI v2.4 - Integrated Execution Flow');
+window.MONSTROS_CRM_VERSION='2.4.0-piloto';
+
+const ExecutionContext={
+  sellerId:localStorage.getItem('monstros_selected_seller')||'',
+  currentView:localStorage.getItem('monstros_current_view')||'dashboard',
+  previousView:'dashboard',
+  academyTitle:localStorage.getItem('monstros_academy_title')||'',
+  academyCategory:localStorage.getItem('monstros_academy_category')||''
+};
+function selectedSeller(){return rankingRows().find(r=>r.seller_id===ExecutionContext.sellerId)||null;}
+function selectSeller(id){ExecutionContext.sellerId=id||'';localStorage.setItem('monstros_selected_seller',ExecutionContext.sellerId);syncSellerSelectors();}
+function syncSellerSelectors(){
+  const id=ExecutionContext.sellerId;
+  ['coach-seller-select','mission-seller'].forEach(k=>{const el=$(k);if(el&&id&&[...el.options].some(o=>o.value===id))el.value=id;});
+}
+function operationalEventStore(){try{return JSON.parse(localStorage.getItem('monstros_operational_events')||'[]')}catch{return[]}}
+async function logOperationalEvent(type,title,text,options={}){
+  const event={id:crypto.randomUUID?.()||String(Date.now()),created_at:new Date().toISOString(),type,title,text,seller_id:options.sellerId||ExecutionContext.sellerId||null,mission_id:options.missionId||null,impact:Number(options.impact||0),status:options.status||null};
+  const events=operationalEventStore();events.unshift(event);localStorage.setItem('monstros_operational_events',JSON.stringify(events.slice(0,200)));
+  try{if(client&&profile){await client.from('operational_events').insert({company_id:profile.company_id,event_type:type,title,text,seller_id:event.seller_id,mission_id:event.mission_id,impact:event.impact,status:event.status,created_by:profile.id});}}catch(e){console.debug('Log local ativo; tabela operacional opcional.',e?.message);}
+  renderSmartTimeline();
+  return event;
+}
+function humanTime(iso){const d=new Date(iso),today=new Date();return d.toDateString()===today.toDateString()?d.toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'}):d.toLocaleDateString('pt-BR');}
+function navigateIntegrated(name,opts={}){
+  ExecutionContext.previousView=ExecutionContext.currentView;
+  ExecutionContext.currentView=name;
+  localStorage.setItem('monstros_current_view',name);
+  if(opts.sellerId)selectSeller(opts.sellerId);
+  openView(name);
+  if(name==='profile360'&&ExecutionContext.sellerId)renderProfile360Pilot(ExecutionContext.sellerId);
+  if(name==='coach'&&ExecutionContext.sellerId){syncSellerSelectors();renderCoach(ExecutionContext.sellerId);}
+  if(name==='academy'){renderAcademy();if(opts.lessonTitle)setTimeout(()=>openAcademyLesson(opts.lessonTitle,opts.category||'Recomendado',opts.description||'Treinamento recomendado pelo Coach.'),40);}
+  if(name==='timeline')renderSmartTimeline();
+  window.scrollTo({top:0,behavior:'smooth'});
+}
+window.navigateIntegrated=navigateIntegrated;
+
+// Amplia títulos e preserva contexto ao trocar de tela.
+const _openView24=openView;
+openView=function(name){
+  _openView24(name);
+  const titles={warroom:['Sala de Guerra','Execução do dia ordenada por impacto.'],coach:['Monster Coach','Diagnóstico, feedback e desenvolvimento individual.'],timeline:['Timeline Inteligente','Memória operacional de decisões e resultados.'],academy:['Monstros Academy','Treinamento adaptativo conectado aos indicadores.']};
+  if(titles[name]){$('view-title').textContent=titles[name][0];$('view-subtitle').textContent=titles[name][1];}
+  ExecutionContext.currentView=name;localStorage.setItem('monstros_current_view',name);
+};
+
+// Ranking -> Perfil 360 em um clique, mantendo o vendedor selecionado.
+const _renderRanking24=renderRanking;
+renderRanking=function(rows){
+  _renderRanking24(rows);
+  $('ranking-body')?.querySelectorAll('tr').forEach((tr,i)=>{
+    const ordered=[...(rows||[])].sort((a,b)=>rankingMode==='monster'?Number(b.score||0)-Number(a.score||0):Number(b.revenue||0)-Number(a.revenue||0));
+    const row=ordered[i];if(!row)return;
+    tr.classList.add('clickable-row');tr.title='Abrir Perfil 360';
+    tr.onclick=(e)=>{if(e.target.closest('button'))return;selectSeller(row.seller_id);navigateIntegrated('profile360',{sellerId:row.seller_id});};
+  });
+};
+window.openSeller360=async function(id){selectSeller(id);navigateIntegrated('profile360',{sellerId:id});renderProfile360Pilot(id);await logOperationalEvent('decision','Perfil 360 aberto',`Análise individual aberta para ${selectedSeller()?.seller_name||'vendedor'}.`,{sellerId:id});};
+window.openCoach=function(id){selectSeller(id);navigateIntegrated('coach',{sellerId:id});renderCoach(id);logOperationalEvent('decision','Coach aberto',`Plano de desenvolvimento aberto para ${selectedSeller()?.seller_name||'vendedor'}.`,{sellerId:id});};
+
+function prefillMissionFromContext(data={}){
+  navigateIntegrated('dashboard',{sellerId:data.sellerId||ExecutionContext.sellerId});
+  $('new-mission-button')?.click();
+  if($('mission-seller'))$('mission-seller').value=data.sellerId||ExecutionContext.sellerId||'';
+  if($('mission-title'))$('mission-title').value=data.title||'';
+  if($('mission-reason'))$('mission-reason').value=data.reason||'';
+  if($('mission-action'))$('mission-action').value=data.action||'';
+  if($('mission-impact'))$('mission-impact').value=Number(data.impact||0).toFixed(2);
+  if($('mission-minutes'))$('mission-minutes').value=Number(data.minutes||20);
+  if($('mission-priority'))$('mission-priority').value=data.priority||'high';
+  $('mission-title')?.focus();
+}
+window.prefillMissionFromContext=prefillMissionFromContext;
+
+// Perfil 360 carregado e com saídas operacionais.
+const _renderProfile360Pilot24=renderProfile360Pilot;
+renderProfile360Pilot=function(id){
+  selectSeller(id);_renderProfile360Pilot24(id);
+  const row=selectedSeller();if(!row)return;
+  const cm=coachMetrics(row),main=[['Recuperar volume',cm.revenueGap],['Elevar ticket',cm.ticketGap],['Reduzir cancelamento',cm.cancelLoss]].sort((a,b)=>b[1]-a[1])[0];
+  const mission=$('p360-mission');if(mission){mission.insertAdjacentHTML('beforeend',`<div class="integrated-actions"><button id="p360-create-mission">Criar missão</button><button id="p360-open-academy" class="secondary">Treinar no Academy</button></div>`);$('p360-create-mission').onclick=()=>prefillMissionFromContext({sellerId:id,title:`${main[0]} de ${row.seller_name}`,reason:`Perfil 360 identificou oportunidade de ${money(main[1])}.`,action:'Executar plano recomendado pelo Coach e revisar o resultado em 7 dias.',impact:main[1],minutes:30});$('p360-open-academy').onclick=()=>navigateIntegrated('academy',{lessonTitle:main[0],category:'Plano individual',description:'Treinamento recomendado a partir do Perfil 360.'});}
+  if($('p360-open-coach'))$('p360-open-coach').onclick=()=>window.openCoach(id);
+};
+
+// Coach -> missão -> Academy com a mesma pessoa selecionada.
+const _renderCoach24=renderCoach;
+renderCoach=function(id){
+  selectSeller(id);_renderCoach24(id);
+  const row=selectedSeller();if(!row)return;
+  const cm=coachMetrics(row);
+  const academyBox=$('coach-academy');
+  if(academyBox){academyBox.querySelectorAll('button').forEach((b,i)=>{b.onclick=()=>{const card=b.closest('.academy-rec');const title=card?.querySelector('h4')?.textContent||'Treinamento recomendado';ExecutionContext.academyTitle=title;localStorage.setItem('monstros_academy_title',title);navigateIntegrated('academy',{lessonTitle:title,category:'Recomendação do Coach',description:card?.querySelector('p')?.textContent||'Treino conectado ao diagnóstico.'});logOperationalEvent('training','Treinamento iniciado',`${row.seller_name}: ${title}.`,{sellerId:id});};});}
+  const plan=$('coach-plan');if(plan&&!$('coach-create-mission')){plan.insertAdjacentHTML('afterend','<div class="integrated-actions"><button id="coach-create-mission">Transformar plano em missão</button><button id="coach-register-feedback" class="secondary">Registrar feedback</button></div>');$('coach-create-mission').onclick=()=>prefillMissionFromContext({sellerId:id,title:`Plano de 7 dias — ${row.seller_name}`,reason:`Coach identificou ${money(cm.total)} de potencial.`,action:'Executar as quatro etapas do plano, registrar evidências e revisar em 7 dias.',impact:cm.total,minutes:45});$('coach-register-feedback').onclick=()=>{logOperationalEvent('feedback','Feedback registrado',`${row.seller_name}: ${$('coach-feedback')?.value||'Feedback realizado.'}`,{sellerId:id});toast24('Feedback registrado na Timeline.');};}
+};
+
+// Missões com ciclo de vida e registro operacional.
+const _saveMission24=$('save-mission-button')?.onclick;
+if($('save-mission-button'))$('save-mission-button').onclick=async()=>{
+  const title=$('mission-title').value.trim(),sellerId=$('mission-seller').value||null,impact=Number($('mission-impact').value||0);
+  await _saveMission24?.();
+  if(title)await logOperationalEvent('mission','Missão criada',title,{sellerId,impact,status:'pending'});
+};
+const _completeMission24=window.completeMission;
+window.completeMission=async function(id){await _completeMission24(id);await logOperationalEvent('mission','Missão concluída','Uma prioridade foi concluída e será validada na próxima atualização.',{missionId:id,status:'completed'});toast24('Missão concluída e registrada.');};
+const _changeMissionStatus24=window.changeMissionStatus;
+if(_changeMissionStatus24)window.changeMissionStatus=async function(id,status){await _changeMissionStatus24(id,status);await logOperationalEvent('mission',`Missão ${status==='in_progress'?'iniciada':status==='completed'?'concluída':'atualizada'}`,`Status alterado para ${status}.`,{missionId:id,status});};
+
+// Director: cada decisão conduz a uma ação real.
+const _renderDirectorPilot24=renderDirectorPilot;
+renderDirectorPilot=function(d){
+  _renderDirectorPilot24(d);const st=operationState();
+  $('director-radar')?.querySelectorAll('.director-card').forEach((card)=>{
+    const label=card.textContent||'';card.classList.add('clickable-card');
+    if(/Risco/i.test(label)&&st.primaryRisk)card.onclick=()=>window.openSeller360(st.primaryRisk.seller_id);
+    else if(/Destaque/i.test(label)&&st.leader)card.onclick=()=>window.openCoach(st.leader.seller_id);
+    else if(/Atenção/i.test(label))card.onclick=()=>navigateIntegrated('warroom');
+    else if(/Missão/i.test(label))card.onclick=()=>prefillMissionFromContext({sellerId:st.primaryRisk?.seller_id,title:`Recuperar produtividade${st.primaryRisk?' — '+st.primaryRisk.seller_name:''}`,reason:'Prioridade definida pelo Monster Director.',action:'Revisar carteira, definir bloco de vendas e acompanhar resultado.',impact:st.money.lowVolume,minutes:50});
+    else if(/Oportunidade|Ganho rápido/i.test(label))card.onclick=()=>$('open-simulator-button')?.click();
+  });
+  $('director-priorities')?.querySelectorAll('button').forEach((b,i)=>{const p=executivePriorities()[i];if(!p)return;b.onclick=()=>p.seller?window.openCoach(p.seller.seller_id):navigateIntegrated('dashboard');});
+};
+
+// Sala de Guerra passa de leitura para execução.
+const _renderWarRoom24=renderWarRoom;
+renderWarRoom=function(){
+  _renderWarRoom24();
+  $('warroom-priorities')?.querySelectorAll('.war-task').forEach((task,i)=>{const risk=operationalRisks()[i];if(!risk)return;task.insertAdjacentHTML('beforeend',`<div class="war-actions"><button>Abrir Coach</button><button class="secondary">Criar missão</button></div>`);const buttons=task.querySelectorAll('button');buttons[0].onclick=()=>window.openCoach(risk.seller_id);buttons[1].onclick=()=>prefillMissionFromContext({sellerId:risk.seller_id,title:`Recuperar ${risk.seller_name}`,reason:sellerAttention(risk).join(' • '),action:'Aplicar plano de curto prazo e acompanhar o próximo bloco.',impact:coachMetrics(risk).total,minutes:30});});
+};
+
+// Academy registra início e conclusão, preservando o vendedor de origem.
+const _openAcademyLesson24=openAcademyLesson;
+openAcademyLesson=function(title,category,description){
+  ExecutionContext.academyTitle=title;localStorage.setItem('monstros_academy_title',title);_openAcademyLesson24(title,category,description);logOperationalEvent('training','Treinamento aberto',`${selectedSeller()?.seller_name?selectedSeller().seller_name+': ':''}${title}.`,{sellerId:ExecutionContext.sellerId});
+  const btn=$('complete-lesson');if(btn){const old=btn.onclick;btn.onclick=async()=>{old?.();await logOperationalEvent('training','Treinamento concluído',`${selectedSeller()?.seller_name?selectedSeller().seller_name+': ':''}${title}.`,{sellerId:ExecutionContext.sellerId,status:'completed'});toast24('Treinamento concluído e registrado.');};}
+};
+
+// Timeline combina dados calculados com ações reais executadas pelo gestor.
+const _renderSmartTimeline24=renderSmartTimeline;
+renderSmartTimeline=function(){
+  _renderSmartTimeline24();
+  const calculated=[...smartTimelineEvents];
+  const real=operationalEventStore().map(e=>({time:humanTime(e.created_at),type:e.type==='training'||e.type==='feedback'?'win':e.type==='mission'?'ai':e.type==='risk'?'risk':'ai',seller_id:e.seller_id,title:e.title,text:e.text}));
+  smartTimelineEvents=[...real,...calculated].slice(0,80);renderTimelineFilter(document.querySelector('.timeline-filter.active')?.dataset.type||'all');
+};
+
+// Analytics recebe snapshots locais para comparação mesmo antes de múltiplas importações no banco.
+function analyticsSnapshots(){try{return JSON.parse(localStorage.getItem('monstros_analytics_snapshots')||'[]')}catch{return[]}}
+function saveAnalyticsSnapshot(){
+  const st=operationState();if(!st.date||!st.revenue)return;
+  const rows=analyticsSnapshots(),key=`${st.date}-${st.revenue}-${st.monsterIndex}`;
+  if(!rows.some(x=>x.key===key)){rows.push({key,created_at:new Date().toISOString(),date:st.date,revenue:st.revenue,index:st.monsterIndex,ticket:st.ticket,cancellation:st.cancellation,projection:st.projection,opportunity:st.opportunity});localStorage.setItem('monstros_analytics_snapshots',JSON.stringify(rows.slice(-120)));}
+}
+const _loadDashboard24=loadDashboard;
+loadDashboard=async function(){const out=await _loadDashboard24();syncSellerSelectors();saveAnalyticsSnapshot();if(ExecutionContext.sellerId&&ExecutionContext.currentView==='profile360')renderProfile360Pilot(ExecutionContext.sellerId);return out;};
+
+function toast24(text){let t=document.querySelector('.toast24');if(!t){t=document.createElement('div');t.className='toast24';document.body.appendChild(t);}t.textContent=text;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),2200);}
+
+// Monstrão usa o contexto selecionado e oferece próximo clique.
+const _answerMonstrao24=answerMonstrao;
+answerMonstrao=function(question){
+  const q=normalize(question),row=selectedSeller();
+  if(row&&(q.includes('ESTE VENDEDOR')||q.includes('VENDEDOR SELECIONADO')||q.includes('PROXIMO PASSO'))){const cm=coachMetrics(row);return `${row.seller_name} está selecionado. Índice ${Math.round(Number(row.score||0))}, receita ${money(row.revenue)}, ticket ${money(row.average_ticket)} e cancelamento ${pct(row.cancellation_rate)}. O potencial estimado é ${money(cm.total)}. Próximo passo: abrir o Monster Coach, validar a principal evidência e transformar o plano em missão.`;}
+  if(q.includes('O QUE EU FIZ')||q.includes('ACOES DE HOJE')){const events=operationalEventStore().slice(0,8);return events.length?`Ações recentes:\n${events.map(e=>`• ${e.title}: ${e.text}`).join('\n')}`:'Ainda não há ações registradas hoje.';}
+  return _answerMonstrao24(question);
+};
+
+// Reabre a última tela e o vendedor após F5.
+setTimeout(()=>{
+  if(ExecutionContext.currentView&&$(`view-${ExecutionContext.currentView}`))navigateIntegrated(ExecutionContext.currentView,{sellerId:ExecutionContext.sellerId});
+  syncSellerSelectors();
+},900);

@@ -131,3 +131,6 @@ button:disabled{opacity:.55;cursor:not-allowed}
 #director-briefing-text{display:grid;gap:6px;line-height:1.45;margin-top:14px}
 #director-briefing-text b{color:#fff}
 .radar-card strong{line-height:1.25}
+
+/* MONSTROS AI 2.4 — FLUXO INTEGRADO */
+.clickable-row,.clickable-card{cursor:pointer;transition:transform .15s ease,border-color .15s ease,background .15s ease}.clickable-row:hover{background:#172d49}.clickable-card:hover{transform:translateY(-2px);border-color:#4f8de8}.integrated-actions,.war-actions{display:flex;gap:10px;flex-wrap:wrap;margin-top:14px}.war-actions{margin-left:auto}.toast24{position:fixed;right:24px;bottom:24px;background:#1f6f45;color:#fff;padding:14px 18px;border-radius:12px;box-shadow:0 12px 35px #0008;z-index:9999;opacity:0;transform:translateY(12px);pointer-events:none;transition:.2s}.toast24.show{opacity:1;transform:translateY(0)}.manual-mission{position:relative}.context-pill{display:inline-flex;align-items:center;gap:8px;padding:6px 10px;border-radius:999px;background:#0b1b2d;border:1px solid #294766;color:#9cc8ff;font-size:.85rem}
