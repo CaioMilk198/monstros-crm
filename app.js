@@ -1,5 +1,5 @@
-console.info('MONSTROS AI v2.4.1 - Core Piloto');
-window.MONSTROS_CRM_VERSION='2.4.1-hotfix-timeline';
+console.info('MONSTROS AI v2.4.1.2 - Mission Timeline Hotfix');
+window.MONSTROS_CRM_VERSION='2.4.1.2-mission-timeline';
 let client = null;
 let profile = null;
 let preview = null;
@@ -410,7 +410,22 @@ $('save-mission-button').onclick=async()=>{
 
   if(error) return setMessage('mission-form-message',error.message,'error');
 
-  setMessage('mission-form-message','Missão criada com sucesso.','success');
+  // HOTFIX 2.4.1.2: registrar a criação na origem do fluxo.
+  const createdMissionContext={
+    title,
+    sellerId:$('mission-seller').value||null,
+    sellerName:$('mission-seller')?.selectedOptions?.[0]?.textContent||'Equipe',
+    impact:Number($('mission-impact').value||0),
+    minutes:Number($('mission-minutes').value||20)
+  };
+  await logOperationalEvent(
+    'mission',
+    'Missão criada',
+    `${createdMissionContext.title} • ${createdMissionContext.sellerName} • ${createdMissionContext.minutes} min${createdMissionContext.impact?` • impacto ${money(createdMissionContext.impact)}`:''}`,
+    {sellerId:createdMissionContext.sellerId,impact:createdMissionContext.impact,status:'pending'}
+  );
+
+  setMessage('mission-form-message','Missão criada com sucesso e registrada na Timeline.','success');
   ['mission-title','mission-reason','mission-action','mission-impact','mission-due'].forEach(id=>{
     if($(id)) $(id).value=id==='mission-impact'?'0':'';
   });
@@ -1273,7 +1288,7 @@ setTimeout(()=>{updateDirectorBriefing();renderSmartTimeline();renderAcademy();}
 
 // ===== MONSTROS AI 2.4 — FLUXO DE EXECUÇÃO INTEGRADO =====
 console.info('MONSTROS AI v2.4 - Integrated Execution Flow');
-window.MONSTROS_CRM_VERSION='2.4.1-hotfix-timeline';
+window.MONSTROS_CRM_VERSION='2.4.1.2-mission-timeline';
 
 const ExecutionContext={
   sellerId:localStorage.getItem('monstros_selected_seller')||'',
@@ -1289,11 +1304,36 @@ function syncSellerSelectors(){
   ['coach-seller-select','mission-seller'].forEach(k=>{const el=$(k);if(el&&id&&[...el.options].some(o=>o.value===id))el.value=id;});
 }
 function operationalEventStore(){try{return JSON.parse(localStorage.getItem('monstros_operational_events')||'[]')}catch{return[]}}
+
+let persistedOperationalEvents=[];
+async function refreshPersistedOperationalEvents(){
+  if(!client||!profile?.company_id){persistedOperationalEvents=[];return []}
+  try{
+    const {data,error}=await client
+      .from('operational_events')
+      .select('id,event_type,title,text,seller_id,mission_id,impact,status,created_at')
+      .eq('company_id',profile.company_id)
+      .order('created_at',{ascending:false})
+      .limit(100);
+    if(error){console.warn('Timeline persistida:',error.message);return persistedOperationalEvents}
+    persistedOperationalEvents=(data||[]).map(e=>({
+      id:e.id,type:e.event_type,title:e.title,text:e.text,seller_id:e.seller_id,
+      mission_id:e.mission_id,impact:Number(e.impact||0),status:e.status,created_at:e.created_at
+    }));
+    return persistedOperationalEvents;
+  }catch(err){
+    console.warn('Timeline persistida:',err);
+    return persistedOperationalEvents;
+  }
+}
+
 async function logOperationalEvent(type,title,text,options={}){
   const sellerId=options.sellerId||ExecutionContext.sellerId||null;
   if(window.EventEngine){
     const event=await window.EventEngine.log({client,profile,type,title,text,sellerId,missionId:options.missionId||null,impact:options.impact||0,status:options.status||null});
-    renderSmartTimeline(); return event;
+    await refreshPersistedOperationalEvents();
+    renderSmartTimeline();
+    return event;
   }
   return null;
 }
@@ -1308,7 +1348,9 @@ function navigateIntegrated(name,opts={}){
   if(name==='profile360'&&ExecutionContext.sellerId)renderProfile360Pilot(ExecutionContext.sellerId);
   if(name==='coach'&&ExecutionContext.sellerId){syncSellerSelectors();renderCoach(ExecutionContext.sellerId);}
   if(name==='academy'){renderAcademy();if(opts.lessonTitle)setTimeout(()=>openAcademyLesson(opts.lessonTitle,opts.category||'Recomendado',opts.description||'Treinamento recomendado pelo Coach.'),40);}
-  if(name==='timeline')renderSmartTimeline();
+  if(name==='timeline'){
+    refreshPersistedOperationalEvents().then(()=>renderSmartTimeline()).catch(()=>renderSmartTimeline());
+  }
   window.scrollTo({top:0,behavior:'smooth'});
 }
 window.navigateIntegrated=navigateIntegrated;
@@ -1372,12 +1414,6 @@ renderCoach=function(id){
 };
 
 // Missões com ciclo de vida e registro operacional.
-const _saveMission24=$('save-mission-button')?.onclick;
-if($('save-mission-button'))$('save-mission-button').onclick=async()=>{
-  const title=$('mission-title').value.trim(),sellerId=$('mission-seller').value||null,impact=Number($('mission-impact').value||0);
-  await _saveMission24?.();
-  if(title)await logOperationalEvent('mission','Missão criada',title,{sellerId,impact,status:'pending'});
-};
 const _completeMission24=window.completeMission;
 window.completeMission=async function(id){await _completeMission24(id);await logOperationalEvent('mission','Missão concluída','Uma prioridade foi concluída e será validada na próxima atualização.',{missionId:id,status:'completed'});toast24('Missão concluída e registrada.');};
 const _changeManualMissionStatus24=window.changeManualMissionStatus;
@@ -1433,8 +1469,18 @@ const _renderSmartTimeline24=renderSmartTimeline;
 renderSmartTimeline=function(){
   _renderSmartTimeline24();
   const calculated=[...smartTimelineEvents];
-  const real=operationalEventStore().map(e=>({time:humanTime(e.created_at),type:e.type==='training'||e.type==='feedback'?'win':e.type==='mission'?'ai':e.type==='risk'?'risk':'ai',seller_id:e.seller_id,title:e.title,text:e.text}));
-  smartTimelineEvents=[...real,...calculated].slice(0,80);renderTimelineFilter(document.querySelector('.timeline-filter.active')?.dataset.type||'all');
+  const toTimeline=e=>({
+    id:e.id||`${e.created_at||''}-${e.title||''}-${e.text||''}`,
+    time:humanTime(e.created_at),
+    type:e.type==='training'||e.type==='feedback'?'win':e.type==='mission'?'ai':e.type==='risk'?'risk':'ai',
+    seller_id:e.seller_id,title:e.title,text:e.text,created_at:e.created_at
+  });
+  const merged=[...persistedOperationalEvents,...operationalEventStore()]
+    .map(toTimeline)
+    .filter((e,i,a)=>a.findIndex(x=>x.id===e.id || (x.title===e.title&&x.text===e.text&&x.created_at===e.created_at))===i)
+    .sort((a,b)=>String(b.created_at||'').localeCompare(String(a.created_at||'')));
+  smartTimelineEvents=[...merged,...calculated].slice(0,100);
+  renderTimelineFilter(document.querySelector('.timeline-filter.active')?.dataset.type||'all');
 };
 
 // Analytics recebe snapshots locais para comparação mesmo antes de múltiplas importações no banco.
