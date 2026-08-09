@@ -1,0 +1,24 @@
+MONSTROS AI 2.6.0 — ORDEM DE IMPLANTAÇÃO
+
+1) SUPABASE
+Rode: SUPABASE_MIGRATION_V8_0_PILOTO_VALIDAVEL.sql
+
+2) SITE
+Substitua TODOS os arquivos do deploy pelos arquivos deste pacote.
+
+3) VERCEL
+Faça novo deploy.
+
+4) NAVEGADOR
+Ctrl + F5.
+
+5) PRIMEIRO TESTE
+Configurações > Cockpit de prontidão > Verificar.
+
+6) FLUXO COMPLETO
+Ranking > Perfil 360 > Coach > Academy > Missão > Sala de Guerra > Timeline.
+
+7) LOGIN VENDEDOR
+Crie conta, vincule em Configurações e teste em janela anônima.
+
+Call Lab continua sem análise automática paga.

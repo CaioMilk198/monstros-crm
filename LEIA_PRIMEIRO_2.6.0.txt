@@ -1,0 +1,37 @@
+MONSTROS AI 2.6.0 — PILOTO VALIDÁVEL
+
+OBJETIVO
+Transformar o piloto em um sistema realmente testável por gestor e vendedor, sem ativar a análise paga de ligações.
+
+O QUE ESTA VERSÃO ENTREGA
+1. Contexto único do vendedor entre Ranking, Perfil 360, Coach, Ligações, Academy, Missões e Timeline.
+2. Correção do Coach que podia mostrar “Selecione um vendedor” mesmo com contexto ativo.
+3. Sala de Guerra alimentada pelos dados reais e pelas missões persistidas.
+4. Timeline priorizando eventos reais: missão criada/iniciada/concluída, QA, Coach e Academy.
+5. Coach enriquecido com a última evidência real do QA de ligação.
+6. Perfil 360 enriquecido com QA, missões e treinamentos do vendedor.
+7. Academy com progresso por vendedor e treino recomendado pelo QA.
+8. Experiência separada para login de vendedor: menus gerenciais são ocultados e o usuário entra no próprio Perfil 360.
+9. Cockpit de prontidão em Configurações mostrando se o piloto está de fato pronto para teste.
+10. RLS reforçada para vendedor ver apenas o que pertence ao próprio seller_id nas áreas operacionais.
+11. Call Lab continua SEM cobrança de IA automática.
+
+IMPLANTAÇÃO
+A) Supabase > SQL Editor:
+   rode UMA VEZ o arquivo SUPABASE_MIGRATION_V8_0_PILOTO_VALIDAVEL.sql
+
+B) Substitua os arquivos do site pelos arquivos deste ZIP e faça o deploy.
+
+C) No navegador use Ctrl + F5.
+
+TESTE DE VALIDAÇÃO RECOMENDADO
+1. Configurações > Cockpit de prontidão > Verificar.
+2. Selecione um vendedor no Ranking.
+3. Abra Perfil 360 > Coach > Academy > Timeline e confirme que o mesmo vendedor permanece ativo.
+4. Crie uma missão, inicie e conclua. Confira Sala de Guerra e Timeline.
+5. Salve uma ligação e preencha QA manual. Abra o Coach e confirme que a evidência aparece.
+6. Inicie/conclua um treino. Volte ao Perfil 360 e confira a atividade.
+7. Crie um login de vendedor, vincule em Configurações e entre com ele. Ele deve cair no próprio Perfil 360 e não ver as telas gerenciais.
+
+IMPORTANTE
+A análise automática paga de ligações continua PAUSADA. O sistema mantém o QA manual e toda a estrutura pronta para futura automação por IA.
