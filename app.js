@@ -1,5 +1,5 @@
 console.info('MONSTROS AI v2.4.1 - Core Piloto');
-window.MONSTROS_CRM_VERSION='2.4.1-core-piloto';
+window.MONSTROS_CRM_VERSION='2.4.1-hotfix-timeline';
 let client = null;
 let profile = null;
 let preview = null;
@@ -1273,7 +1273,7 @@ setTimeout(()=>{updateDirectorBriefing();renderSmartTimeline();renderAcademy();}
 
 // ===== MONSTROS AI 2.4 — FLUXO DE EXECUÇÃO INTEGRADO =====
 console.info('MONSTROS AI v2.4 - Integrated Execution Flow');
-window.MONSTROS_CRM_VERSION='2.4.1-core-piloto';
+window.MONSTROS_CRM_VERSION='2.4.1-hotfix-timeline';
 
 const ExecutionContext={
   sellerId:localStorage.getItem('monstros_selected_seller')||'',
@@ -1380,8 +1380,24 @@ if($('save-mission-button'))$('save-mission-button').onclick=async()=>{
 };
 const _completeMission24=window.completeMission;
 window.completeMission=async function(id){await _completeMission24(id);await logOperationalEvent('mission','Missão concluída','Uma prioridade foi concluída e será validada na próxima atualização.',{missionId:id,status:'completed'});toast24('Missão concluída e registrada.');};
-const _changeMissionStatus24=window.changeMissionStatus;
-if(_changeMissionStatus24)window.changeMissionStatus=async function(id,status){await _changeMissionStatus24(id,status);await logOperationalEvent('mission',`Missão ${status==='in_progress'?'iniciada':status==='completed'?'concluída':'atualizada'}`,`Status alterado para ${status}.`,{missionId:id,status});};
+const _changeManualMissionStatus24=window.changeManualMissionStatus;
+if(_changeManualMissionStatus24)window.changeManualMissionStatus=async function(id,status){
+  const before=(await window.MissionEngine?.list(client,50).catch(()=>[]))||[];
+  const mission=before.find(m=>String(m.id)===String(id));
+  await _changeManualMissionStatus24(id,status);
+  const sellerId=mission?.seller_id||null;
+  const sellerName=mission?.seller_name||'Equipe';
+  const title=mission?.title||'Missão';
+  const impact=Number(mission?.estimated_impact||0);
+  await logOperationalEvent(
+    'mission',
+    status==='in_progress'?'Missão iniciada':status==='completed'?'Missão concluída':'Missão atualizada',
+    `${title} • ${sellerName}${impact?` • impacto ${money(impact)}`:''}`,
+    {sellerId,missionId:id,impact,status}
+  );
+  renderSmartTimeline();
+  toast24(status==='in_progress'?'Missão iniciada e registrada na Timeline.':status==='completed'?'Missão concluída e registrada na Timeline.':'Missão atualizada na Timeline.');
+};
 
 // Director: cada decisão conduz a uma ação real.
 const _renderDirectorPilot24=renderDirectorPilot;
