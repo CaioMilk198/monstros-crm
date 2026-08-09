@@ -1,0 +1,8 @@
+MONSTROS AI 2.5.1 — PACOTE CORRIGIDO
+
+Correção aplicada no SUPABASE_MIGRATION_V7_0_PILOTO_OPERACIONAL.sql:
+- role (enum user_role) convertido para texto nas políticas e validação da função assign_pilot_user.
+- p_role convertido explicitamente para public.user_role no UPDATE.
+
+Este ZIP substitui o pacote 2.5 anterior.
+Para o erro exibido no SQL Editor, use a migração V7_0 deste pacote.

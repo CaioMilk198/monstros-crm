@@ -47,7 +47,7 @@
 
   <div id="app" class="app hidden">
     <aside>
-      <div class="brand"><span>MONSTROS</span> AI <small>PILOTO 2.4.1.3</small></div>
+      <div class="brand"><span>MONSTROS</span> AI <small>PILOTO 2.5</small></div>
       <nav>
         <button class="nav active" data-view="dashboard">Centro de Comando</button>
         <button class="nav" data-view="import">Importar planilha</button>
@@ -57,6 +57,7 @@
         <button class="nav" data-view="warroom">Sala de Guerra</button>
         <button class="nav" data-view="director">Director</button>
         <button class="nav" data-view="coach">Monster Coach</button>
+        <button class="nav" data-view="calls">Ligações & QA</button>
         <button class="nav" data-view="analytics">Analytics 2.0</button>
         <button class="nav" data-view="timeline">Timeline Inteligente</button>
         <button class="nav" data-view="academy">Academy</button>
@@ -81,6 +82,16 @@
       <div id="profile-warning" class="profile-warning hidden">
         <strong>Seu perfil está sendo preparado.</strong>
         <span id="profile-warning-text">Aguarde alguns segundos ou abra Configurações.</span>
+      </div>
+
+
+      <div id="pilot-context-strip" class="pilot-context-strip hidden">
+        <div><small>CONTEXTO ATIVO</small><strong id="pilot-context-title">Equipe</strong><span id="pilot-context-meta">—</span></div>
+        <div class="pilot-context-actions">
+          <button id="context-open-profile" class="secondary compact-button">Perfil</button>
+          <button id="context-open-coach" class="secondary compact-button">Coach</button>
+          <button id="context-create-mission" class="compact-button">Missão</button>
+        </div>
       </div>
 
       <section id="view-dashboard" class="view">
@@ -360,6 +371,36 @@
         </div>
       </section>
 
+
+      <section id="view-calls" class="view hidden">
+        <div class="calllab-hero fluid-hero">
+          <div><small>CALL LAB • QUALIDADE COM IA</small><h3>Ligações & QA</h3><p>Envie uma ligação, vincule ao vendedor e transforme a conversa em evidência, feedback, treino e missão.</p></div>
+          <span id="calllab-ai-status" class="ai-status">● IA pronta para configurar</span>
+        </div>
+        <div class="calllab-grid">
+          <article class="panel soft-card">
+            <div class="section-kicker">1 • ENVIAR LIGAÇÃO</div>
+            <label>Vendedor</label><select id="calllab-seller"><option value="">Selecione um vendedor</option></select>
+            <label>Arquivo de áudio</label><input id="calllab-file" type="file" accept="audio/*,.mp3,.wav,.m4a,.ogg,.webm" />
+            <div class="form-row">
+              <div><label>Tipo</label><select id="calllab-type"><option value="sale">Venda</option><option value="return">Retorno</option><option value="confirmation">Confirmação</option></select></div>
+              <div><label>Observação</label><input id="calllab-note" placeholder="Ex.: cliente com objeção de preço" /></div>
+            </div>
+            <button id="calllab-upload">Enviar e analisar</button>
+            <div id="calllab-message" class="message"></div>
+          </article>
+          <article class="panel soft-card calllab-result-card">
+            <div class="section-kicker">2 • DIAGNÓSTICO</div>
+            <div id="calllab-empty"><h3>A análise aparecerá aqui</h3><p class="muted">Transcrição, nota, evidências, objeções, pontos fortes, ajustes e próximo treino.</p></div>
+            <div id="calllab-result" class="hidden"></div>
+          </article>
+        </div>
+        <article class="panel soft-card call-history">
+          <div class="panel-title-row"><div><div class="section-kicker">HISTÓRICO</div><h3>Últimas ligações analisadas</h3></div><button id="calllab-refresh" class="secondary compact-button">Atualizar</button></div>
+          <div id="calllab-history"></div>
+        </article>
+      </section>
+
       <section id="view-director" class="view hidden">
         <article class="panel director-briefing">
           <div><small>BRIEFING EXECUTIVO</small><h3 id="director-greeting">Bom dia, Caio.</h3><p id="director-briefing-text">O Monster Director está organizando as prioridades da operação.</p></div>
@@ -480,6 +521,11 @@
           <h3>Ambiente piloto</h3>
           <button id="claim-admin-button">Ativar este usuário como primeiro administrador</button>
           <p>Use apenas para o primeiro usuário do projeto.</p>
+          <div id="pilot-access-admin" class="pilot-access-admin">
+            <hr class="divider" />
+            <div class="panel-title-row"><div><small>ACESSOS DO PILOTO</small><h3>Logins da equipe</h3><p class="muted">Vincule uma conta criada no login ao vendedor correspondente.</p></div><button id="pilot-users-refresh" class="secondary compact-button">Atualizar</button></div>
+            <div id="pilot-users-list"></div>
+          </div>
           <button id="reset-config-button" class="danger">Apagar configuração local do Supabase</button>
           <div id="settings-message" class="message"></div>
         </div>
@@ -496,5 +542,6 @@
   <script src="core/snapshot-engine.js?v=2.4.1.3.2"></script>
   <script src="monster-engine.js?v=2.4.1.3.2"></script>
   <script src="app.js?v=2.4.1.3.2"></script>
+  <script src="pilot25.js?v=2.5.0"></script>
 </body>
 </html>
