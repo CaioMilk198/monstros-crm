@@ -1,0 +1,30 @@
+MONSTROS AI 2.5.2 — CORREÇÃO DO CALL LAB / EDGE FUNCTION
+
+O upload do áudio já funcionava. O erro estava na chamada da Edge Function `monstros-ai`.
+Esta versão adiciona:
+- teste real de saúde da IA na tela Ligações & QA;
+- status verde apenas se a função estiver online e OPENAI_API_KEY configurada;
+- mensagem clara quando a função não estiver publicada;
+- mensagem clara quando faltar OPENAI_API_KEY;
+- tratamento de erro da análise e gravação do status no histórico;
+- CORS explícito para chamadas do navegador;
+- limite de 25 MB também validado no servidor.
+
+IMPORTANTE: o ZIP do site NÃO publica sozinho uma Edge Function no Supabase.
+Depois de substituir os arquivos do site, você precisa publicar UMA VEZ a função `monstros-ai` no Supabase e cadastrar a OPENAI_API_KEY.
+
+PASSO MAIS FÁCIL PELO DASHBOARD SUPABASE:
+1. Abra seu projeto no Supabase.
+2. Vá em Edge Functions.
+3. Clique em Deploy a new function > Via Editor.
+4. Nome: monstros-ai
+5. Apague o exemplo e cole TODO o conteúdo de:
+   supabase/functions/monstros-ai/index.ts
+6. Clique em Deploy function.
+7. Vá em Edge Functions > Secrets (ou Project Settings > Edge Functions/Secrets, conforme sua tela).
+8. Crie o secret OPENAI_API_KEY com a sua chave da API OpenAI.
+9. Volte ao MONSTROS AI, faça Ctrl+F5 e abra Ligações & QA.
+10. O topo deve mostrar: “● IA conectada e pronta”.
+
+Se aparecer “Edge Function online • falta configurar OPENAI_API_KEY”, a publicação deu certo e falta apenas o secret.
+Se aparecer “IA offline • Edge Function não alcançada”, a função ainda não está publicada no projeto correto.

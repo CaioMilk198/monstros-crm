@@ -47,7 +47,7 @@
 
   <div id="app" class="app hidden">
     <aside>
-      <div class="brand"><span>MONSTROS</span> AI <small>PILOTO 2.5</small></div>
+      <div class="brand"><span>MONSTROS</span> AI <small>PILOTO 2.5.3</small></div>
       <nav>
         <button class="nav active" data-view="dashboard">Centro de Comando</button>
         <button class="nav" data-view="import">Importar planilha</button>
@@ -374,29 +374,50 @@
 
       <section id="view-calls" class="view hidden">
         <div class="calllab-hero fluid-hero">
-          <div><small>CALL LAB • QUALIDADE COM IA</small><h3>Ligações & QA</h3><p>Envie uma ligação, vincule ao vendedor e transforme a conversa em evidência, feedback, treino e missão.</p></div>
-          <span id="calllab-ai-status" class="ai-status">● IA pronta para configurar</span>
+          <div><small>CALL LAB • PILOTO SEM CUSTO</small><h3>Ligações & QA</h3><p>Salve a ligação, faça a avaliação guiada e conecte a evidência ao Perfil 360, Coach, Academy, Missões e Timeline.</p></div>
+          <span id="calllab-ai-status" class="ai-status ai-warn">● IA automática pausada • modo piloto sem custo</span>
         </div>
         <div class="calllab-grid">
           <article class="panel soft-card">
-            <div class="section-kicker">1 • ENVIAR LIGAÇÃO</div>
+            <div class="section-kicker">1 • SALVAR LIGAÇÃO</div>
             <label>Vendedor</label><select id="calllab-seller"><option value="">Selecione um vendedor</option></select>
             <label>Arquivo de áudio</label><input id="calllab-file" type="file" accept="audio/*,.mp3,.wav,.m4a,.ogg,.webm" />
             <div class="form-row">
               <div><label>Tipo</label><select id="calllab-type"><option value="sale">Venda</option><option value="return">Retorno</option><option value="confirmation">Confirmação</option></select></div>
               <div><label>Observação</label><input id="calllab-note" placeholder="Ex.: cliente com objeção de preço" /></div>
             </div>
-            <button id="calllab-upload">Enviar e analisar</button>
+            <button id="calllab-upload">Salvar ligação</button>
             <div id="calllab-message" class="message"></div>
+            <div class="pilot-cost-note"><strong>Sem cobrança de IA.</strong><span>O áudio fica salvo no Supabase e a avaliação pode ser feita manualmente agora. Quando ativarmos uma IA, ela preencherá este mesmo diagnóstico automaticamente.</span></div>
           </article>
+
           <article class="panel soft-card calllab-result-card">
-            <div class="section-kicker">2 • DIAGNÓSTICO</div>
-            <div id="calllab-empty"><h3>A análise aparecerá aqui</h3><p class="muted">Transcrição, nota, evidências, objeções, pontos fortes, ajustes e próximo treino.</p></div>
+            <div class="section-kicker">2 • QA DO GESTOR</div>
+            <div id="calllab-empty">
+              <h3>Avaliação guiada</h3>
+              <p class="muted">Salve uma ligação para liberar o formulário. Você registra somente o essencial; o sistema distribui a evidência para os outros módulos.</p>
+            </div>
+            <div id="calllab-manual" class="hidden">
+              <div class="qa-score-row">
+                <div><label>Nota (0–100)</label><input id="qa-score" type="number" min="0" max="100" value="70" /></div>
+                <div><label>Leitura geral</label><select id="qa-verdict"><option>Excelente</option><option>Bom</option><option selected>Atenção</option><option>Crítico</option></select></div>
+              </div>
+              <label>O que funcionou</label><textarea id="qa-strengths" rows="3" placeholder="Ex.: criou conexão, fez boa investigação, sustentou valor..."></textarea>
+              <label>Onde melhorar</label><textarea id="qa-improvements" rows="3" placeholder="Ex.: antecipou desconto, não confirmou pedido, perdeu fechamento..."></textarea>
+              <div class="qa-score-row">
+                <div><label>Objeção principal</label><input id="qa-objections" placeholder="Ex.: preço / vou pensar / não confio" /></div>
+                <div><label>Treino recomendado</label><input id="qa-training" placeholder="Ex.: Sustentar valor sem desconto" /></div>
+              </div>
+              <label>Evidência / trecho da ligação</label><textarea id="qa-evidence" rows="2" placeholder="Copie uma frase ou descreva o momento que comprova o diagnóstico."></textarea>
+              <label>Próxima ação</label><input id="qa-next-action" placeholder="Ex.: ouvir 2 ligações amanhã e praticar confirmação final" />
+              <details class="qa-transcript-details"><summary>Adicionar transcrição (opcional)</summary><textarea id="qa-transcript" rows="7" placeholder="Cole aqui uma transcrição caso você já tenha."></textarea></details>
+              <div class="integrated-actions"><button id="qa-save">Salvar QA e conectar</button><button id="qa-reset" class="secondary">Limpar</button></div>
+            </div>
             <div id="calllab-result" class="hidden"></div>
           </article>
         </div>
         <article class="panel soft-card call-history">
-          <div class="panel-title-row"><div><div class="section-kicker">HISTÓRICO</div><h3>Últimas ligações analisadas</h3></div><button id="calllab-refresh" class="secondary compact-button">Atualizar</button></div>
+          <div class="panel-title-row"><div><div class="section-kicker">HISTÓRICO</div><h3>Últimas ligações</h3><p class="muted">Clique em uma ligação analisada para rever o diagnóstico.</p></div><button id="calllab-refresh" class="secondary compact-button">Atualizar</button></div>
           <div id="calllab-history"></div>
         </article>
       </section>
@@ -542,6 +563,6 @@
   <script src="core/snapshot-engine.js?v=2.4.1.3.2"></script>
   <script src="monster-engine.js?v=2.4.1.3.2"></script>
   <script src="app.js?v=2.4.1.3.2"></script>
-  <script src="pilot25.js?v=2.5.0"></script>
+  <script src="pilot25.js?v=2.5.3"></script>
 </body>
 </html>

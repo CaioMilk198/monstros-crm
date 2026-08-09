@@ -153,3 +153,16 @@ main{padding:24px 30px 48px}.view{max-width:1580px;margin:0 auto}.view-enter{ani
 @media(max-width:1050px){.calllab-grid{grid-template-columns:1fr}.pilot-context-strip{position:static}.call-analysis-grid{grid-template-columns:1fr}}
 @media(max-width:700px){main{padding:16px}.fluid-hero,.pilot-context-strip{align-items:flex-start;flex-direction:column}.pilot-context-actions{width:100%;overflow:auto}.pilot-context-actions button{flex:1}.call-score strong{font-size:48px}}
 .pilot-access-admin{margin-top:8px}.pilot-user-row{display:grid;grid-template-columns:1.2fr 1fr auto;align-items:center;gap:12px;padding:11px 0;border-bottom:1px solid var(--line)}.pilot-user-row small{display:block;color:var(--muted);margin-top:3px}.pilot-user-row select{width:100%;padding:9px;border-radius:8px;background:#081522;color:#fff;border:1px solid var(--line)}.pilot-user-row button{margin:0}@media(max-width:800px){.pilot-user-row{grid-template-columns:1fr}.pilot-user-row button{width:100%}}
+
+/* 2.5.2 Edge Function health */
+#calllab-ai-status.ai-ok{color:#4ade80!important}#calllab-ai-status.ai-warn{color:#fbbf24!important}
+
+/* MONSTROS AI 2.5.3 — Call Lab modo piloto sem custo */
+.pilot-cost-note{margin-top:16px;padding:13px 14px;border:1px solid rgba(251,191,36,.28);background:rgba(120,78,0,.12);border-radius:12px;display:flex;gap:7px;flex-direction:column;color:#cbd8e9}
+.pilot-cost-note strong{color:#fbbf24}.pilot-cost-note span{font-size:13px;line-height:1.45}
+.qa-score-row{display:grid;grid-template-columns:180px 1fr;gap:12px}
+#calllab-manual label{display:block;margin-top:11px;margin-bottom:6px;color:#9ec0ed;font-size:13px}
+#calllab-manual input,#calllab-manual select,#calllab-manual textarea{width:100%;box-sizing:border-box}
+.qa-transcript-details{margin:14px 0}.qa-transcript-details summary{cursor:pointer;color:#9ec0ed;font-weight:700;margin-bottom:10px}
+.call-status.analyzed_manual{background:#153720;color:#86efac}
+@media(max-width:700px){.qa-score-row{grid-template-columns:1fr}}

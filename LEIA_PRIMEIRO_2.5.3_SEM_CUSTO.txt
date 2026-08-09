@@ -1,0 +1,47 @@
+MONSTROS AI 2.5.3 — PILOTO SEM CUSTO DE IA
+
+OBJETIVO
+Continuar o piloto sem gastar com transcrição/análise automática de ligações.
+
+O QUE MUDOU
+1. Ligações & QA não chama mais a OpenAI automaticamente.
+2. O botão agora SALVA A LIGAÇÃO no Supabase.
+3. Depois do upload abre um QA guiado do gestor:
+   - nota 0–100
+   - o que funcionou
+   - onde melhorar
+   - objeção principal
+   - evidência
+   - treino recomendado
+   - próxima ação
+   - transcrição opcional
+4. Ao salvar o QA, o diagnóstico fica conectado aos botões:
+   - Abrir Coach
+   - Treinar no Academy
+   - Criar missão
+   - Timeline operacional
+5. O histórico permite reabrir ligações já avaliadas.
+6. Nenhuma chamada paga de IA é feita no Call Lab nesta versão.
+
+IMPLANTAÇÃO
+A) No Supabase > SQL Editor, rode UMA VEZ:
+   SUPABASE_MIGRATION_V7_1_CALL_QA_SEM_CUSTO.sql
+
+B) Depois substitua os arquivos do site pelos arquivos deste ZIP e faça o deploy na Vercel.
+
+C) No navegador use Ctrl + F5.
+
+TESTE RÁPIDO
+1. Abra Ligações & QA.
+2. Escolha um vendedor.
+3. Selecione um áudio.
+4. Clique SALVAR LIGAÇÃO.
+5. Preencha o QA do gestor.
+6. Clique SALVAR QA E CONECTAR.
+7. Teste Abrir Coach, Treinar no Academy e Criar missão.
+8. Confira a Timeline.
+
+IMPORTANTE
+A Edge Function monstros-ai e a OPENAI_API_KEY podem permanecer como estão.
+Esta versão simplesmente NÃO usa IA automática para a análise das ligações.
+Quando decidirmos ativar IA novamente, o mesmo formato de diagnóstico poderá ser preenchido automaticamente.
