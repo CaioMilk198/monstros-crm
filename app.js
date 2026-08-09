@@ -1,5 +1,5 @@
-console.info('MONSTROS AI v2.3 - Unified Intelligence State');
-window.MONSTROS_CRM_VERSION='2.3.0-piloto';
+console.info('MONSTROS AI v2.4.1 - Core Piloto');
+window.MONSTROS_CRM_VERSION='2.4.1-core-piloto';
 let client = null;
 let profile = null;
 let preview = null;
@@ -38,6 +38,14 @@ const dateBR = (v) => v ? new Date(v).toLocaleString('pt-BR') : '—';
 
 
 function operationState(){
+  if(window.OperationEngine){
+    const base=window.OperationEngine.build({dashboard:dashboardPayload||{},engine:window.MonsterEngine?.payload||dashboardPayload?.engine||{},director:directorPayload||{},ranking:rankingRows()});
+    const risks=operationalRisks(),leaders=operationalLeaders();
+    const h=(window.MonsterEngine?.payload||dashboardPayload?.engine||{})?.health||{};
+    return {...base,risks,leaders,primaryRisk:risks[0]||null,leader:leaders[0]||null,
+      lowVolumeCount:Number(h.low_volume_count||risks.filter(r=>sellerAttention(r).some(x=>/baixo volume|abaixo do ritmo/i.test(x))).length),
+      cancellationRiskCount:Number(h.cancellation_risk_count||risks.filter(r=>sellerAttention(r).some(x=>/cancelamento/i.test(x))).length)};
+  }
   const s=dashboardPayload?.summary||{};
   const e=window.MonsterEngine?.payload||dashboardPayload?.engine||directorPayload?.engine||{};
   const p=e.projection||{};
@@ -1265,7 +1273,7 @@ setTimeout(()=>{updateDirectorBriefing();renderSmartTimeline();renderAcademy();}
 
 // ===== MONSTROS AI 2.4 — FLUXO DE EXECUÇÃO INTEGRADO =====
 console.info('MONSTROS AI v2.4 - Integrated Execution Flow');
-window.MONSTROS_CRM_VERSION='2.4.0-piloto';
+window.MONSTROS_CRM_VERSION='2.4.1-core-piloto';
 
 const ExecutionContext={
   sellerId:localStorage.getItem('monstros_selected_seller')||'',
@@ -1275,24 +1283,26 @@ const ExecutionContext={
   academyCategory:localStorage.getItem('monstros_academy_category')||''
 };
 function selectedSeller(){return rankingRows().find(r=>r.seller_id===ExecutionContext.sellerId)||null;}
-function selectSeller(id){ExecutionContext.sellerId=id||'';localStorage.setItem('monstros_selected_seller',ExecutionContext.sellerId);syncSellerSelectors();}
+function selectSeller(id){ExecutionContext.sellerId=id||'';localStorage.setItem('monstros_selected_seller',ExecutionContext.sellerId);window.MonsterStore?.selectSeller(ExecutionContext.sellerId);syncSellerSelectors();}
 function syncSellerSelectors(){
   const id=ExecutionContext.sellerId;
   ['coach-seller-select','mission-seller'].forEach(k=>{const el=$(k);if(el&&id&&[...el.options].some(o=>o.value===id))el.value=id;});
 }
 function operationalEventStore(){try{return JSON.parse(localStorage.getItem('monstros_operational_events')||'[]')}catch{return[]}}
 async function logOperationalEvent(type,title,text,options={}){
-  const event={id:crypto.randomUUID?.()||String(Date.now()),created_at:new Date().toISOString(),type,title,text,seller_id:options.sellerId||ExecutionContext.sellerId||null,mission_id:options.missionId||null,impact:Number(options.impact||0),status:options.status||null};
-  const events=operationalEventStore();events.unshift(event);localStorage.setItem('monstros_operational_events',JSON.stringify(events.slice(0,200)));
-  try{if(client&&profile){await client.from('operational_events').insert({company_id:profile.company_id,event_type:type,title,text,seller_id:event.seller_id,mission_id:event.mission_id,impact:event.impact,status:event.status,created_by:profile.id});}}catch(e){console.debug('Log local ativo; tabela operacional opcional.',e?.message);}
-  renderSmartTimeline();
-  return event;
+  const sellerId=options.sellerId||ExecutionContext.sellerId||null;
+  if(window.EventEngine){
+    const event=await window.EventEngine.log({client,profile,type,title,text,sellerId,missionId:options.missionId||null,impact:options.impact||0,status:options.status||null});
+    renderSmartTimeline(); return event;
+  }
+  return null;
 }
 function humanTime(iso){const d=new Date(iso),today=new Date();return d.toDateString()===today.toDateString()?d.toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'}):d.toLocaleDateString('pt-BR');}
 function navigateIntegrated(name,opts={}){
   ExecutionContext.previousView=ExecutionContext.currentView;
   ExecutionContext.currentView=name;
   localStorage.setItem('monstros_current_view',name);
+  window.MonsterStore?.navigate(name);
   if(opts.sellerId)selectSeller(opts.sellerId);
   openView(name);
   if(name==='profile360'&&ExecutionContext.sellerId)renderProfile360Pilot(ExecutionContext.sellerId);
@@ -1419,7 +1429,13 @@ function saveAnalyticsSnapshot(){
   if(!rows.some(x=>x.key===key)){rows.push({key,created_at:new Date().toISOString(),date:st.date,revenue:st.revenue,index:st.monsterIndex,ticket:st.ticket,cancellation:st.cancellation,projection:st.projection,opportunity:st.opportunity});localStorage.setItem('monstros_analytics_snapshots',JSON.stringify(rows.slice(-120)));}
 }
 const _loadDashboard24=loadDashboard;
-loadDashboard=async function(){const out=await _loadDashboard24();syncSellerSelectors();saveAnalyticsSnapshot();if(ExecutionContext.sellerId&&ExecutionContext.currentView==='profile360')renderProfile360Pilot(ExecutionContext.sellerId);return out;};
+loadDashboard=async function(){
+  const out=await _loadDashboard24();
+  syncSellerSelectors();saveAnalyticsSnapshot();
+  if(dashboardPayload?.date) window.SnapshotEngine?.capture(client,dashboardPayload.date);
+  if(ExecutionContext.sellerId&&ExecutionContext.currentView==='profile360')renderProfile360Pilot(ExecutionContext.sellerId);
+  return out;
+};
 
 function toast24(text){let t=document.querySelector('.toast24');if(!t){t=document.createElement('div');t.className='toast24';document.body.appendChild(t);}t.textContent=text;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),2200);}
 
