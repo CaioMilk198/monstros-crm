@@ -1,5 +1,5 @@
-console.info('MONSTROS AI v2.4.1.2 - Mission Timeline Hotfix');
-window.MONSTROS_CRM_VERSION='2.4.1.2-mission-timeline';
+console.info('MONSTROS AI v2.4.1.3 - Timeline Robusta');
+window.MONSTROS_CRM_VERSION='2.4.1.3-timeline-robusta';
 let client = null;
 let profile = null;
 let preview = null;
@@ -424,6 +424,7 @@ $('save-mission-button').onclick=async()=>{
     `${createdMissionContext.title} • ${createdMissionContext.sellerName} • ${createdMissionContext.minutes} min${createdMissionContext.impact?` • impacto ${money(createdMissionContext.impact)}`:''}`,
     {sellerId:createdMissionContext.sellerId,impact:createdMissionContext.impact,status:'pending'}
   );
+  await refreshPersistedMissionEvents();
 
   setMessage('mission-form-message','Missão criada com sucesso e registrada na Timeline.','success');
   ['mission-title','mission-reason','mission-action','mission-impact','mission-due'].forEach(id=>{
@@ -1288,7 +1289,7 @@ setTimeout(()=>{updateDirectorBriefing();renderSmartTimeline();renderAcademy();}
 
 // ===== MONSTROS AI 2.4 — FLUXO DE EXECUÇÃO INTEGRADO =====
 console.info('MONSTROS AI v2.4 - Integrated Execution Flow');
-window.MONSTROS_CRM_VERSION='2.4.1.2-mission-timeline';
+window.MONSTROS_CRM_VERSION='2.4.1.3-timeline-robusta';
 
 const ExecutionContext={
   sellerId:localStorage.getItem('monstros_selected_seller')||'',
@@ -1306,6 +1307,61 @@ function syncSellerSelectors(){
 function operationalEventStore(){try{return JSON.parse(localStorage.getItem('monstros_operational_events')||'[]')}catch{return[]}}
 
 let persistedOperationalEvents=[];
+let persistedMissionEvents=[];
+async function refreshPersistedMissionEvents(){
+  if(!client){persistedMissionEvents=[];return []}
+  try{
+    const {data,error}=await client.rpc('list_management_missions',{p_status:null,p_limit:100});
+    if(error){console.warn('Timeline de missões:',error.message);return persistedMissionEvents}
+    const missions=data||[];
+    const events=[];
+    missions.forEach(m=>{
+      const base={
+        seller_id:m.seller_id||null,
+        mission_id:m.id,
+        impact:Number(m.estimated_impact||0)
+      };
+      if(m.created_at){
+        events.push({
+          id:`mission-created-${m.id}`,
+          type:'mission',
+          title:'Missão criada',
+          text:`${m.title}${m.seller_name?` • ${m.seller_name}`:''}${Number(m.estimated_impact||0)?` • impacto ${money(Number(m.estimated_impact||0))}`:''}`,
+          status:'pending',
+          created_at:m.created_at,
+          ...base
+        });
+      }
+      if(m.status==='in_progress'){
+        events.push({
+          id:`mission-started-${m.id}`,
+          type:'mission',
+          title:'Missão em andamento',
+          text:`${m.title}${m.seller_name?` • ${m.seller_name}`:''}`,
+          status:'in_progress',
+          created_at:m.created_at,
+          ...base
+        });
+      }
+      if(m.status==='completed' && m.completed_at){
+        events.push({
+          id:`mission-completed-${m.id}`,
+          type:'mission',
+          title:'Missão concluída',
+          text:`${m.title}${m.seller_name?` • ${m.seller_name}`:''}${Number(m.estimated_impact||0)?` • impacto ${money(Number(m.estimated_impact||0))}`:''}`,
+          status:'completed',
+          created_at:m.completed_at,
+          ...base
+        });
+      }
+    });
+    persistedMissionEvents=events;
+    return events;
+  }catch(err){
+    console.warn('Timeline de missões:',err);
+    return persistedMissionEvents;
+  }
+}
 async function refreshPersistedOperationalEvents(){
   if(!client||!profile?.company_id){persistedOperationalEvents=[];return []}
   try{
@@ -1331,7 +1387,10 @@ async function logOperationalEvent(type,title,text,options={}){
   const sellerId=options.sellerId||ExecutionContext.sellerId||null;
   if(window.EventEngine){
     const event=await window.EventEngine.log({client,profile,type,title,text,sellerId,missionId:options.missionId||null,impact:options.impact||0,status:options.status||null});
-    await refreshPersistedOperationalEvents();
+    await Promise.all([
+      refreshPersistedOperationalEvents(),
+      refreshPersistedMissionEvents()
+    ]);
     renderSmartTimeline();
     return event;
   }
@@ -1349,7 +1408,10 @@ function navigateIntegrated(name,opts={}){
   if(name==='coach'&&ExecutionContext.sellerId){syncSellerSelectors();renderCoach(ExecutionContext.sellerId);}
   if(name==='academy'){renderAcademy();if(opts.lessonTitle)setTimeout(()=>openAcademyLesson(opts.lessonTitle,opts.category||'Recomendado',opts.description||'Treinamento recomendado pelo Coach.'),40);}
   if(name==='timeline'){
-    refreshPersistedOperationalEvents().then(()=>renderSmartTimeline()).catch(()=>renderSmartTimeline());
+    Promise.all([
+      refreshPersistedOperationalEvents(),
+      refreshPersistedMissionEvents()
+    ]).then(()=>renderSmartTimeline()).catch(()=>renderSmartTimeline());
   }
   window.scrollTo({top:0,behavior:'smooth'});
 }
@@ -1475,7 +1537,7 @@ renderSmartTimeline=function(){
     type:e.type==='training'||e.type==='feedback'?'win':e.type==='mission'?'ai':e.type==='risk'?'risk':'ai',
     seller_id:e.seller_id,title:e.title,text:e.text,created_at:e.created_at
   });
-  const merged=[...persistedOperationalEvents,...operationalEventStore()]
+  const merged=[...persistedOperationalEvents,...persistedMissionEvents,...operationalEventStore()]
     .map(toTimeline)
     .filter((e,i,a)=>a.findIndex(x=>x.id===e.id || (x.title===e.title&&x.text===e.text&&x.created_at===e.created_at))===i)
     .sort((a,b)=>String(b.created_at||'').localeCompare(String(a.created_at||'')));
