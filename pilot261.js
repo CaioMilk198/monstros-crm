@@ -134,7 +134,7 @@ console.info('MONSTROS AI 2.6.0 - Piloto validável, execução conectada e cock
       ['🚨','Missões críticas',String(critical.length)],
       ['👥','Vendedores em atenção',String(risks.length)],
       ['📈','Projeção',cash(projection)],
-      ['🎯','Chance de meta',target?`${(chance*100).toFixed(0)}%`:'—']
+      ['🎯','Atingimento projetado',target?`${(chance*100).toFixed(0)}%`:'—']
     ].map(c=>`<div class="warroom-kpi panel"><span>${c[0]}</span><small>${c[1]}</small><strong>${c[2]}</strong></div>`).join('');
 
     const priorityList=active.length?active.slice(0,8):risks.slice(0,6).map(r=>({seller_id:r.seller_id,seller_name:r.seller_name,title:`Recuperar ${r.seller_name}`,reason:'Desvio identificado pelos indicadores da operação.',action_text:'Definir meta curta, revisar carteira e acompanhar o próximo bloco.',estimated_impact:typeof coachMetrics==='function'?coachMetrics(r).total:0,priority:'high',status:'pending'}));
@@ -389,7 +389,7 @@ console.info('MONSTROS AI 2.6.0 - Piloto validável, execução conectada e cock
     const risks=st.risks||[];
     if($('warroom-kpis')){
       const critical=actionable.filter(m=>['critical','high'].includes(String(m.priority).toLowerCase())).length;
-      $('warroom-kpis').innerHTML=[['💰','Oportunidade',brl(st.opportunity)],['🚨','Prioridades com impacto',String(critical)],['👥','Vendedores em atenção',String(risks.length)],['📈','Projeção',brl(st.projection)],['🎯','Chance de meta',`${Math.min(100,Math.round(n(st.projectedAttainment)*100))}%`]].map(x=>`<div class="war-kpi"><span>${x[0]}</span><small>${x[1]}</small><strong>${x[2]}</strong></div>`).join('');
+      $('warroom-kpis').innerHTML=[['💰','Oportunidade',brl(st.opportunity)],['🚨','Prioridades com impacto',String(critical)],['👥','Vendedores em atenção',String(risks.length)],['📈','Projeção',brl(st.projection)],['🎯','Atingimento projetado',`${Math.min(100,Math.round(n(st.projectedAttainment)*100))}%`]].map(x=>`<div class="war-kpi"><span>${x[0]}</span><small>${x[1]}</small><strong>${x[2]}</strong></div>`).join('');
     }
     const list=actionable.slice(0,8);
     $('warroom-priorities').innerHTML=list.map((m,i)=>`<div class="war-task ${esc2(m.priority||'medium')}"><b>${i+1}</b><div><h4>${esc2(m.title)}</h4><p>${esc2(m.reason||m.action_text||'Ação operacional priorizada pelo impacto.')}</p><strong>${brl(m.estimated_impact??m.impact)} de impacto</strong><small class="why-priority">Prioridade calculada por impacto financeiro + urgência.</small><div class="war-actions"><button data-war-coach="${m.seller_id||''}">Abrir Coach</button><button class="secondary" data-war-start="${m.id||''}">${m.status==='in_progress'?'Em andamento':'Iniciar'}</button></div></div></div>`).join('')||'<p>Sem prioridade financeira crítica agora.</p>';

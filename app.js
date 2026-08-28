@@ -560,7 +560,7 @@ function renderWarRoom(){
     ['🚨','Missões críticas',String(missions.length||risks.length)],
     ['👥','Vendedores em atenção',String(risks.length)],
     ['📈','Projeção',money(proj.projected_revenue||0)],
-    ['🎯','Chance de meta',Number(proj.target||0)>0?pct(Math.min(1.25,Number(proj.projected_revenue||0)/Number(proj.target))):'—']
+    ['🎯','Atingimento projetado',Number(proj.target||0)>0?pct(Math.min(1.25,Number(proj.projected_revenue||0)/Number(proj.target))):'—']
   ];
   $('warroom-kpis').innerHTML=cards.map(c=>`<div class="warroom-kpi panel"><span>${c[0]}</span><small>${c[1]}</small><strong>${c[2]}</strong></div>`).join('');
   $('warroom-priorities').innerHTML=(missions.length?missions.slice(0,6):risks.slice(0,6).map((r,i)=>({title:`Recuperar ${r.seller_name}`,reason:'Indicadores abaixo do potencial da equipe.',action:'Definir meta curta, revisar carteira e acompanhar o próximo bloco.',impact:r.money_left_on_table||0}))).map((x,i)=>`<div class="war-task"><b>${i+1}</b><div><h4>${x.title}</h4><p>${x.reason||x.action||''}</p><strong>${money(x.impact||0)} de impacto</strong></div></div>`).join('')||'<p>Sem missões críticas.</p>';
@@ -1169,7 +1169,20 @@ boot();
 // ===== MONSTROS AI 2.2 — EXECUTIVE INTELLIGENCE =====
 let smartTimelineEvents=[];
 function firstName(){return (profile?.full_name||'Caio').split(' ')[0];}
-function operationalRisks(){return rankingRows().filter(r=>sellerAttention(r).some(x=>/baixo|cancelamento|risco|evolução/i.test(x))).sort((a,b)=>coachMetrics(b).total-coachMetrics(a).total);}
+function operationalRisks(){
+  const rows=rankingRows();
+  if(!rows.length)return [];
+  const avgRevenue=rows.reduce((sum,row)=>sum+Number(row.revenue||0),0)/rows.length;
+  const avgCancellation=rows.reduce((sum,row)=>sum+Number(row.cancellation_rate||0),0)/rows.length;
+  const configuredRaw=Number(dashboardPayload?.engine?.settings?.cancellation_limit||dashboardPayload?.cancellation_limit||.08);
+  const configuredLimit=configuredRaw>1?configuredRaw/100:configuredRaw;
+  return rows.filter(row=>{
+    const attention=(sellerDNA().find(x=>x.seller_id===row.seller_id)?.attention||[]);
+    const tagged=attention.some(x=>/baix[oa]|abaixo|cancelamento|risco|queda|atraso/i.test(x));
+    const numeric=Number(row.revenue||0)<avgRevenue*.72||Number(row.cancellation_rate||0)>Math.max(configuredLimit,avgCancellation*1.25);
+    return tagged||numeric;
+  }).sort((a,b)=>coachMetrics(b).total-coachMetrics(a).total);
+}
 function operationalLeaders(){return [...rankingRows()].sort((a,b)=>Number(b.revenue||0)-Number(a.revenue||0));}
 function executivePriorities(){
   const risks=operationalRisks();

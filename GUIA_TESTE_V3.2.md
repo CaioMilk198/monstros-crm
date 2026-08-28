@@ -1,34 +1,43 @@
-# MONSTROS AI 3.2 — Motor da Decisão
+# MONSTROS AI 3.2 — Gestão Inteligente
 
-## O que muda
+Esta versão combina a estrutura visual mais confiável da 2.6.1 com os motores e integrações presentes na base 3.1. A alteração é de interface, hierarquia, leitura gerencial e coerência de decisão.
 
-- Uma única fila de decisões alimenta Início, notificações, Equipe e Sala de Guerra.
-- Cada recomendação mostra situação, causa provável, evidência, ação, impacto estimado, prazo, critério de sucesso e confiança.
-- A recomendação pode virar missão; missões podem ser iniciadas e concluídas com registro de resultado.
-- A navegação preserva o padrão familiar de feed, mas prioriza ação em vez de publicação.
-- Estados vazios, histórico insuficiente e estimativas são apresentados com transparência.
-- A busca de vendedores não depende mais de o usuário voltar ao ranking.
+## Instalação
 
-## Como instalar pelo GitHub
+1. Extraia o ZIP.
+2. Substitua os arquivos do projeto no GitHub pelos arquivos desta versão.
+3. Faça o commit e aguarde a publicação automática.
+4. Recarregue o sistema com `Ctrl + F5`.
 
-1. Abra o repositório `monstros-crm` e confirme que está conectado na conta correta.
-2. Na raiz do repositório, envie todos os arquivos e pastas deste pacote, mantendo a mesma estrutura.
-3. Marque a opção para substituir os arquivos com o mesmo nome.
-4. Confirme o commit na branch `main`.
-5. Aguarde o novo deploy automático da Vercel.
-6. Abra o sistema em janela anônima ou use `Ctrl + F5` para evitar cache.
+Não há SQL novo e não é necessário alterar o Supabase.
 
-Não é necessário executar SQL novo para testar esta versão. O 3.2 reutiliza as missões e eventos já existentes no Supabase.
+## Teste principal
 
-## Roteiro de validação
+1. Confirme a identificação `3.2 • GESTÃO INTELIGENTE` no menu lateral.
+2. Abra **Visão geral** e verifique:
+   - progresso da meta;
+   - faturamento, projeção, oportunidade e Índice Monstro;
+   - composição gráfica da oportunidade;
+   - leitura visual da equipe;
+   - decisão principal e fila de ações.
+3. Confirme que ações financeiras aparecem antes de reconhecimento quando houver oportunidade recuperável.
+4. Abra **Prioridades** e confira se a quantidade de vendedores em atenção é coerente com a fila de decisão.
+5. Confirme o indicador **Atingimento projetado**. Ele representa `projeção ÷ meta`, e não probabilidade.
+6. Abra **Decisões** e confirme que a Ação nº 1 é a mesma prioridade mostrada na Visão geral.
+7. Selecione um vendedor em **Equipe**, abra **Perfil 360** e confirme que o perfil correto é carregado.
+8. Navegue por uma tela coletiva e uma individual. O contexto deve indicar claramente **Equipe Monstros** ou **Vendedor em análise**.
+9. Abra **Evolução**. Com menos de três importações, devem aparecer medidores atuais e o aviso **Histórico em formação**, sem uma falsa linha de tendência.
+10. Abra **Monstrão** e teste uma pergunta rápida e uma pergunta digitada.
 
-1. **Início:** o número de decisões deve ser igual ao contador de notificações.
-2. **Coerência:** compare uma prioridade do Início com a Sala de Guerra; responsável, impacto e status devem coincidir.
-3. **Explicação:** abra “Por que o sistema recomenda isso?” e verifique causa, evidência, critério e confiança.
-4. **Execução:** transforme uma recomendação em missão, inicie e depois conclua registrando o resultado.
-5. **Vendedores:** use a busca direta sem precisar voltar ao ranking.
-6. **Evolução:** com poucos registros, o sistema deve avisar que ainda não há histórico confiável.
+## Teste de regressão funcional
+
+- Importação de planilha continua abrindo normalmente.
+- Ranking continua ordenando e abrindo o vendedor selecionado.
+- Perfil, Coach e Missão mantêm o mesmo vendedor em contexto.
+- Sala de Guerra, Director, Timeline, Academy e Ligações & QA carregam sem erro.
+- Atualizar dados continua acionando os motores já existentes.
+- Login, Supabase e integrações não exigem nova configuração.
 
 ## Critério de aprovação
 
-Um gestor sem treinamento deve conseguir, em menos de 60 segundos, responder: o que aconteceu, em quem agir, o que fazer, por quê, qual impacto esperado e quando revisar.
+A versão deve ser aprovada somente se a mesma prioridade, o mesmo vendedor e os mesmos valores principais forem coerentes entre Visão geral, Prioridades e Decisões.
